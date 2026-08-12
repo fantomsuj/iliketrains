@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TrainMarker: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let train: Train
     let isSelected: Bool
 
@@ -19,7 +20,10 @@ struct TrainMarker: View {
             Circle()
                 .strokeBorder(train.operator.tint, lineWidth: isSelected ? 3 : 2)
         }
-        .animation(.bouncy(duration: 0.4, extraBounce: 0.12), value: isSelected)
+        .animation(
+            reduceMotion ? nil : .bouncy(duration: 0.4, extraBounce: 0.12),
+            value: isSelected
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(train.operator.displayName) train \(train.number), \(train.name)")
         .accessibilityValue("\(train.status.label), \(train.speedMPH) miles per hour")
@@ -48,11 +52,29 @@ struct FreightSightingMarker: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(.ultraThinMaterial, in: Capsule())
+
+            Text("\(Int(sighting.confidence * 100))% • \(sighting.reporterCount) reports")
+                .font(.system(size: 8, weight: .bold, design: .rounded))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(.ultraThinMaterial, in: Capsule())
+
+            Text(sighting.observedAt.formatted(.relative(presentation: .numeric)))
+                .font(.system(size: 8, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(.ultraThinMaterial, in: Capsule())
         }
         .shadow(color: .black.opacity(0.18), radius: 5, y: 3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(sighting.operator.displayName) freight sighting")
-        .accessibilityValue("\(Int(sighting.confidence * 100)) percent confidence, \(sighting.direction)")
+        .accessibilityValue(
+            "\(Int(sighting.confidence * 100)) percent confidence, " +
+            "\(sighting.reporterCount) reporters, " +
+            "\(sighting.observedAt.formatted(.relative(presentation: .named))), " +
+            sighting.direction
+        )
     }
 
     private var confidenceColor: Color {

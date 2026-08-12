@@ -39,6 +39,8 @@ def main() -> None:
         fail("third-party Swift package reference found")
     if "INFOPLIST_KEY_NSLocationWhenInUseUsageDescription" not in pbx:
         fail("location usage description is missing")
+    if pbx.count("PRODUCT_MODULE_NAME = ILikeTrainsData;") != 2:
+        fail("Xcode app module must match the SwiftPM module imported by tests")
 
     definitions = re.findall(
         r"^\s*([A-Z0-9]{24})(?: /\*.*?\*/)? = \{\n\s*isa =",

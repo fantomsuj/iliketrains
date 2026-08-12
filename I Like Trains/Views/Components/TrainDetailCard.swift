@@ -27,7 +27,7 @@ struct TrainDetailCard: View {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.caption.bold())
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
                         .background(.black.opacity(0.08), in: Circle())
                 }
                 .buttonStyle(.pressable)

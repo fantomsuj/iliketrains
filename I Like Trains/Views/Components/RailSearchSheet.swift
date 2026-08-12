@@ -12,7 +12,7 @@ struct RailSearchSheet: View {
                 } else {
                     List(model.filteredTrains) { train in
                         Button {
-                            model.selectTrain(train)
+                            model.setSelectedTrain(train)
                             dismiss()
                         } label: {
                             HStack(spacing: 14) {

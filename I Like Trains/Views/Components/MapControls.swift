@@ -2,6 +2,7 @@ import MapKit
 import SwiftUI
 
 struct MapControls: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let scope: Namespace.ID
     @Binding var layers: RailLayerVisibility
     let isRefreshing: Bool
@@ -36,11 +37,11 @@ struct MapControls: View {
                     .foregroundStyle(RailTheme.railInk)
                     .frame(width: 48, height: 48)
                     .background(.ultraThinMaterial, in: Circle())
-                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                    .rotationEffect(.degrees(isRefreshing && !reduceMotion ? 360 : 0))
                     .animation(
-                        isRefreshing
+                        isRefreshing && !reduceMotion
                             ? .linear(duration: 0.9).repeatForever(autoreverses: false)
-                            : .default,
+                            : nil,
                         value: isRefreshing
                     )
             }

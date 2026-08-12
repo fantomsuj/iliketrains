@@ -82,7 +82,11 @@ public final class RailMapViewModel {
     }
 
     public var selectedTrain: Train? {
-        trains.first { $0.id == selectedTrainID }
+        filteredTrains.first { $0.id == selectedTrainID }
+    }
+
+    public var hasVisibleContent: Bool {
+        !trains.isEmpty || !segments.isEmpty || !sightings.isEmpty
     }
 
     public func load() async {
@@ -107,5 +111,9 @@ public final class RailMapViewModel {
 
     public func selectTrain(_ train: Train) {
         selectedTrainID = selectedTrainID == train.id ? nil : train.id
+    }
+
+    public func setSelectedTrain(_ train: Train) {
+        selectedTrainID = train.id
     }
 }

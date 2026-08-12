@@ -144,7 +144,29 @@ struct RailMapView: View {
     @ViewBuilder
     private var statusOverlay: some View {
         switch model.loadState {
-        case .idle, .loaded:
+        case .idle:
+            EmptyView()
+        case .loaded where !model.hasVisibleContent:
+            VStack(spacing: 8) {
+                Image(systemName: "train.side.front.car")
+                    .font(.title2.bold())
+                    .foregroundStyle(RailTheme.signalOrange)
+                Text("No trains on the board")
+                    .font(.headline)
+                Text("The feeds returned an empty snapshot.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Reload") {
+                    Task { await model.refresh() }
+                }
+                .font(.subheadline.bold())
+                .frame(minWidth: 88, minHeight: 44)
+                .buttonStyle(.borderedProminent)
+                .tint(RailTheme.signalOrange)
+            }
+            .padding(18)
+            .background(RailTheme.parchment, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        case .loaded:
             EmptyView()
         case .loading:
             HStack(spacing: 10) {
@@ -168,6 +190,7 @@ struct RailMapView: View {
                     Task { await model.refresh() }
                 }
                 .font(.caption.bold())
+                .frame(minWidth: 64, minHeight: 44)
             }
             .padding(12)
             .background(RailTheme.parchment, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -226,7 +249,7 @@ struct RailMapView: View {
             .font(.caption.bold())
             .foregroundStyle(RailTheme.railInk)
             .padding(.horizontal, 12)
-            .frame(height: 38)
+            .frame(minHeight: 44)
             .background(RailTheme.parchment, in: Capsule())
         }
         .buttonStyle(.pressable)

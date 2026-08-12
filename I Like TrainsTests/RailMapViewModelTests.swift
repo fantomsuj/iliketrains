@@ -19,6 +19,7 @@ final class RailMapViewModelTests: XCTestCase {
         XCTAssertFalse(model.trains.isEmpty)
         XCTAssertFalse(model.segments.isEmpty)
         XCTAssertFalse(model.sightings.isEmpty)
+        XCTAssertTrue(model.hasVisibleContent)
     }
 
     func testSearchMatchesTrainNumberNameRouteAndOperator() async {
@@ -46,8 +47,10 @@ final class RailMapViewModelTests: XCTestCase {
         XCTAssertTrue(model.filteredTrains.allSatisfy { $0.operator == .brightline })
 
         model.layers.infrastructure = false
+        model.layers.stations = false
         model.layers.freightSightings = false
         XCTAssertTrue(model.visibleSegments.isEmpty)
+        XCTAssertTrue(model.visibleStations.isEmpty)
         XCTAssertTrue(model.visibleSightings.isEmpty)
         XCTAssertFalse(model.filteredTrains.isEmpty)
     }
@@ -64,6 +67,33 @@ final class RailMapViewModelTests: XCTestCase {
         XCTAssertNil(model.selectedTrain)
     }
 
+    func testExplicitSelectionNeverTogglesOffAndHiddenSelectionIsNotPresented() async {
+        let model = makeLoadedModel()
+        await model.load()
+        let train = try! XCTUnwrap(model.trains.first)
+
+        model.setSelectedTrain(train)
+        model.setSelectedTrain(train)
+        XCTAssertEqual(model.selectedTrain, train)
+
+        model.layers.passengerTrains = false
+        XCTAssertNil(model.selectedTrain)
+    }
+
+    func testEmptySnapshotExposesEmptyState() async {
+        let service = EmptyRailDataService()
+        let model = RailMapViewModel(
+            trainProvider: service,
+            infrastructureProvider: service,
+            freightProvider: service
+        )
+
+        await model.load()
+
+        XCTAssertEqual(model.loadState, .loaded)
+        XCTAssertFalse(model.hasVisibleContent)
+    }
+
     func testRefreshFailurePreservesPreviousSnapshot() async {
         let healthy = MockRailDataService(referenceDate: referenceDate)
         let model = RailMapViewModel(
@@ -72,14 +102,18 @@ final class RailMapViewModelTests: XCTestCase {
             freightProvider: SequencedFreightProvider(first: healthy)
         )
         await model.load()
-        let previous = model.trains
+        let previousTrains = model.trains
+        let previousSegments = model.segments
+        let previousSightings = model.sightings
 
         await model.refresh()
 
         guard case .failed = model.loadState else {
             return XCTFail("Expected failed state")
         }
-        XCTAssertEqual(model.trains, previous)
+        XCTAssertEqual(model.trains, previousTrains)
+        XCTAssertEqual(model.segments, previousSegments)
+        XCTAssertEqual(model.sightings, previousSightings)
     }
 
     private func makeLoadedModel() -> RailMapViewModel {
@@ -90,6 +124,16 @@ final class RailMapViewModelTests: XCTestCase {
             freightProvider: service
         )
     }
+}
+
+private struct EmptyRailDataService:
+    TrainProviding,
+    RailInfrastructureProviding,
+    FreightSightingProviding
+{
+    func trains() async throws -> [Train] { [] }
+    func railSegments() async throws -> [RailSegment] { [] }
+    func freightSightings() async throws -> [FreightSighting] { [] }
 }
 
 private actor SequencedTrainProvider: TrainProviding {

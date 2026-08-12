@@ -19,7 +19,7 @@ A tactile, map-first rail tracker for iOS. I Like Trains combines the live opera
 
 ## Open and run
 
-Requirements: Xcode 15 or newer and an iOS 17+ simulator/device.
+Requirements: Xcode 16 or newer and an iOS 17+ simulator/device.
 
 1. Open **I Like Trains.xcodeproj**.
 2. Choose the shared **I Like Trains** scheme.
