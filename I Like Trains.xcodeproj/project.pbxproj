@@ -1,0 +1,589 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C00000000000000000000001 /* I_Like_TrainsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* I_Like_TrainsApp.swift */; };
+		C00000000000000000000002 /* RailCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* RailCoordinate.swift */; };
+		C00000000000000000000003 /* Train.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* Train.swift */; };
+		C00000000000000000000004 /* RailSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* RailSegment.swift */; };
+		C00000000000000000000005 /* FreightSighting.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* FreightSighting.swift */; };
+		C00000000000000000000006 /* RailDataProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* RailDataProviding.swift */; };
+		C00000000000000000000007 /* MockRailDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* MockRailDataService.swift */; };
+		C00000000000000000000008 /* RailMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* RailMapViewModel.swift */; };
+		C00000000000000000000009 /* RailMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* RailMapView.swift */; };
+		C00000000000000000000010 /* BrandBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* BrandBar.swift */; };
+		C00000000000000000000011 /* MapControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* MapControls.swift */; };
+		C00000000000000000000012 /* RailFilterSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* RailFilterSheet.swift */; };
+		C00000000000000000000013 /* RailSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* RailSearchSheet.swift */; };
+		C00000000000000000000014 /* TrainMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* TrainMarker.swift */; };
+		C00000000000000000000015 /* TrainDetailCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* TrainDetailCard.swift */; };
+		C00000000000000000000016 /* PressableButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* PressableButtonStyle.swift */; };
+		C00000000000000000000017 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* Theme.swift */; };
+		C00000000000000000000018 /* RailCoordinate+MapKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* RailCoordinate+MapKit.swift */; };
+		C00000000000000000000019 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* Assets.xcassets */; };
+		C00000000000000000000020 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* Preview Assets.xcassets */; };
+		C00000000000000000000021 /* MockRailDataServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000021 /* MockRailDataServiceTests.swift */; };
+		C00000000000000000000022 /* RailMapViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* RailMapViewModelTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		H00000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000001;
+			remoteInfo = "I Like Trains";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B00000000000000000000001 /* I_Like_TrainsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = I_Like_TrainsApp.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* RailCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailCoordinate.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* Train.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Train.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 /* RailSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailSegment.swift; sourceTree = "<group>"; };
+		B00000000000000000000005 /* FreightSighting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreightSighting.swift; sourceTree = "<group>"; };
+		B00000000000000000000006 /* RailDataProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailDataProviding.swift; sourceTree = "<group>"; };
+		B00000000000000000000007 /* MockRailDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockRailDataService.swift; sourceTree = "<group>"; };
+		B00000000000000000000008 /* RailMapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailMapViewModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000009 /* RailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailMapView.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* BrandBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandBar.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* MapControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapControls.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* RailFilterSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailFilterSheet.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* RailSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailSearchSheet.swift; sourceTree = "<group>"; };
+		B00000000000000000000014 /* TrainMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainMarker.swift; sourceTree = "<group>"; };
+		B00000000000000000000015 /* TrainDetailCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainDetailCard.swift; sourceTree = "<group>"; };
+		B00000000000000000000016 /* PressableButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PressableButtonStyle.swift; sourceTree = "<group>"; };
+		B00000000000000000000017 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		B00000000000000000000018 /* RailCoordinate+MapKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RailCoordinate+MapKit.swift"; sourceTree = "<group>"; };
+		B00000000000000000000019 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B00000000000000000000020 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Content/Preview Assets.xcassets"; sourceTree = "<group>"; };
+		B00000000000000000000021 /* MockRailDataServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockRailDataServiceTests.swift; sourceTree = "<group>"; };
+		B00000000000000000000022 /* RailMapViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailMapViewModelTests.swift; sourceTree = "<group>"; };
+		B00000000000000000000023 /* I Like Trains.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "I Like Trains.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000024 /* I Like TrainsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "I Like TrainsTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E00000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D00000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000002 /* I Like Trains */,
+				D00000000000000000000010 /* I Like TrainsTests */,
+				D00000000000000000000011 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D00000000000000000000002 /* I Like Trains */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000001 /* I_Like_TrainsApp.swift */,
+				D00000000000000000000003 /* Models */,
+				D00000000000000000000004 /* Services */,
+				D00000000000000000000005 /* ViewModels */,
+				D00000000000000000000006 /* Views */,
+				D00000000000000000000008 /* Support */,
+				D00000000000000000000009 /* Resources */,
+			);
+			path = "I Like Trains";
+			sourceTree = "<group>";
+		};
+		D00000000000000000000003 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000002 /* RailCoordinate.swift */,
+				B00000000000000000000003 /* Train.swift */,
+				B00000000000000000000004 /* RailSegment.swift */,
+				B00000000000000000000005 /* FreightSighting.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000004 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000006 /* RailDataProviding.swift */,
+				B00000000000000000000007 /* MockRailDataService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000005 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000008 /* RailMapViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000009 /* RailMapView.swift */,
+				D00000000000000000000007 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000007 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000010 /* BrandBar.swift */,
+				B00000000000000000000011 /* MapControls.swift */,
+				B00000000000000000000012 /* RailFilterSheet.swift */,
+				B00000000000000000000013 /* RailSearchSheet.swift */,
+				B00000000000000000000014 /* TrainMarker.swift */,
+				B00000000000000000000015 /* TrainDetailCard.swift */,
+				B00000000000000000000016 /* PressableButtonStyle.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000008 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000017 /* Theme.swift */,
+				B00000000000000000000018 /* RailCoordinate+MapKit.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000019 /* Assets.xcassets */,
+				B00000000000000000000020 /* Preview Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000010 /* I Like TrainsTests */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000021 /* MockRailDataServiceTests.swift */,
+				B00000000000000000000022 /* RailMapViewModelTests.swift */,
+			);
+			path = "I Like TrainsTests";
+			sourceTree = "<group>";
+		};
+		D00000000000000000000011 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000023 /* I Like Trains.app */,
+				B00000000000000000000024 /* I Like TrainsTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000001 /* I Like Trains */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G00000000000000000000002 /* Build configuration list for PBXNativeTarget "I Like Trains" */;
+			buildPhases = (
+				E00000000000000000000002 /* Sources */,
+				E00000000000000000000001 /* Frameworks */,
+				E00000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "I Like Trains";
+			packageProductDependencies = (
+			);
+			productName = "I Like Trains";
+			productReference = B00000000000000000000023 /* I Like Trains.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A00000000000000000000002 /* I Like TrainsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G00000000000000000000003 /* Build configuration list for PBXNativeTarget "I Like TrainsTests" */;
+			buildPhases = (
+				E00000000000000000000004 /* Sources */,
+				E00000000000000000000005 /* Frameworks */,
+				E00000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				H00000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = "I Like TrainsTests";
+			packageProductDependencies = (
+			);
+			productName = "I Like TrainsTests";
+			productReference = B00000000000000000000024 /* I Like TrainsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A00000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					A00000000000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A00000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = G00000000000000000000001 /* Build configuration list for PBXProject "I Like Trains" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D00000000000000000000001;
+			productRefGroup = D00000000000000000000011 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000001 /* I Like Trains */,
+				A00000000000000000000002 /* I Like TrainsTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E00000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C00000000000000000000019 /* Assets.xcassets in Resources */,
+				C00000000000000000000020 /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E00000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C00000000000000000000001 /* I_Like_TrainsApp.swift in Sources */,
+				C00000000000000000000002 /* RailCoordinate.swift in Sources */,
+				C00000000000000000000003 /* Train.swift in Sources */,
+				C00000000000000000000004 /* RailSegment.swift in Sources */,
+				C00000000000000000000005 /* FreightSighting.swift in Sources */,
+				C00000000000000000000006 /* RailDataProviding.swift in Sources */,
+				C00000000000000000000007 /* MockRailDataService.swift in Sources */,
+				C00000000000000000000008 /* RailMapViewModel.swift in Sources */,
+				C00000000000000000000009 /* RailMapView.swift in Sources */,
+				C00000000000000000000010 /* BrandBar.swift in Sources */,
+				C00000000000000000000011 /* MapControls.swift in Sources */,
+				C00000000000000000000012 /* RailFilterSheet.swift in Sources */,
+				C00000000000000000000013 /* RailSearchSheet.swift in Sources */,
+				C00000000000000000000014 /* TrainMarker.swift in Sources */,
+				C00000000000000000000015 /* TrainDetailCard.swift in Sources */,
+				C00000000000000000000016 /* PressableButtonStyle.swift in Sources */,
+				C00000000000000000000017 /* Theme.swift in Sources */,
+				C00000000000000000000018 /* RailCoordinate+MapKit.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C00000000000000000000021 /* MockRailDataServiceTests.swift in Sources */,
+				C00000000000000000000022 /* RailMapViewModelTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		H00000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000001 /* I Like Trains */;
+			targetProxy = H00000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F00000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F00000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F00000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"I Like Trains/Resources/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "I Like Trains";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location is used to show nearby rail activity on the map.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fantomsuj.iliketrains;
+				PRODUCT_MODULE_NAME = ILikeTrainsData;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F00000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"I Like Trains/Resources/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "I Like Trains";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location is used to show nearby rail activity on the map.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fantomsuj.iliketrains;
+				PRODUCT_MODULE_NAME = ILikeTrainsData;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F00000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fantomsuj.iliketrainsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/I Like Trains.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/I Like Trains";
+			};
+			name = Debug;
+		};
+		F00000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fantomsuj.iliketrainsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/I Like Trains.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/I Like Trains";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		G00000000000000000000001 /* Build configuration list for PBXProject "I Like Trains" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000001 /* Debug */,
+				F00000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G00000000000000000000002 /* Build configuration list for PBXNativeTarget "I Like Trains" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000003 /* Debug */,
+				F00000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G00000000000000000000003 /* Build configuration list for PBXNativeTarget "I Like TrainsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000005 /* Debug */,
+				F00000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000000 /* Project object */;
+}
