@@ -60,6 +60,7 @@ import { distanceAt, smoothStep } from '/lib/motion.js';
 maplibregl.addProtocol('pmtiles', new Protocol().tile);
 const map = new maplibregl.Map({ container: 'map', style: '/style.json', center: [-73.9, 40.85], zoom: 7.2, attributionControl: { compact: false } });
 window.__map = map;
+window.__trains = () => trains;
 
 // ---- geometry ----
 function decode(s) { const out = []; let i = 0, lat = 0, lon = 0;

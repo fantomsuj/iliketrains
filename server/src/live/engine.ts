@@ -72,7 +72,10 @@ export class Engine {
     for (const a of this.adapters) {
       if (!a.enabled) continue;
       const interval = (a.id === 'amtrak' ? Math.max(30, config.pollSeconds) : config.pollSeconds) * 1000;
-      const loop = async () => { await this.pollAdapter(a); setTimeout(loop, config.demo ? 5000 : interval).unref?.(); };
+      const loop = async () => {
+        try { await this.pollAdapter(a); } catch (e) { console.error(`[${a.id}] unexpected error:`, e); }
+        setTimeout(loop, config.demo ? 5000 : interval);
+      };
       void loop();
     }
   }
@@ -100,7 +103,9 @@ export class Engine {
       const id = `${raw.operator}:${raw.tripId}`;
       if (seen.has(id)) continue;
       const prev = this.trains.get(id);
-      const next = this.positioner.position(raw, now, prev);
+      let next: TrainState;
+      try { next = this.positioner.position(raw, now, prev); }
+      catch (e) { console.error(`[${adapterId}] could not position ${id}:`, e); if (prev) seen.add(id); continue; }
       if (next.status === 'completed' || Number.isNaN(next.lat)) { this.trains.delete(id); continue; }
       seen.add(id);
       newEvents.push(...this.events.diff(prev, next, now, quiet));

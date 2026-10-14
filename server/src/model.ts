@@ -42,6 +42,8 @@ export interface MotionPlan {
   d0: number; t0: number;
   /** Speed to use when a predicted arrival is already in the past (m/s). */
   fallbackSpeed: number;
+  /** Never move faster than this, even to make an optimistic predicted arrival (m/s). */
+  maxSpeed: number;
   stops: PlanStop[];
   /** End of the line; the train never moves past this. */
   maxD: number;

@@ -33,6 +33,24 @@ export class Positioner {
     return best && best.coverage >= 0.5 ? best.pattern : undefined;
   }
 
+  /** GPS fixes that disagree with the last one by an impossible amount, waiting for confirmation. */
+  private suspect = new Map<string, { d: number; at: number }>();
+
+  /**
+   * Reject a GPS fix implying an impossible move since the previous GPS fix (faster than
+   * 80 m/s, or more than 1.5 km backward), unless the next fix agrees with it. Some feeds
+   * alternate between two reports for the same train.
+   */
+  plausible(id: string, shape: string, d: number, at: number, previous?: TrainState): boolean {
+    if (!previous?.plan || previous.fix !== 'gps' || previous.shape !== shape || at <= previous.plan.t0) { this.suspect.delete(id); return true; }
+    const dt = (at - previous.plan.t0) / 1000, moved = d - previous.plan.d0;
+    if (moved <= 80 * dt + 1500 && moved >= -1500) { this.suspect.delete(id); return true; }
+    const s = this.suspect.get(id);
+    if (s && Math.abs(d - s.d) <= 80 * ((at - s.at) / 1000) + 1500 && d - s.d >= -1500) { this.suspect.delete(id); return true; }
+    this.suspect.set(id, { d, at });
+    return false;
+  }
+
   private stationCoord(operator: string, id: string): LonLat | undefined { return this.feeds.get(operator)?.stops.get(id)?.lonlat; }
 
   /** Distance along `line` of each raw stop, using the pattern where it matches and projection otherwise. */
@@ -118,7 +136,15 @@ export class Positioner {
     const p = raw.position;
     if (p && now - p.at < (MAX_POSITION_AGE_MS_BY_OPERATOR[raw.operator] ?? MAX_POSITION_AGE_MS) && departedOrigin) {
       const r = line.project([p.lon, p.lat], Math.max(0, lastDepartedD - 3000), nextD === line.length ? line.length : gpsWindowEnd);
-      if (r.offset < MAX_SNAP_OFFSET_M) { d0 = r.d; t0 = p.at; live = true; }
+      if (r.offset < MAX_SNAP_OFFSET_M) {
+        if (this.plausible(base.id, pattern!.shape, r.d, p.at, previous)) { d0 = r.d; t0 = p.at; live = true; }
+        else if (previous?.plan) { d0 = distanceAt(previous.plan, now); t0 = now; live = true; } // keep gliding on the last good fix
+      }
+    }
+    // GPS missing from this update but a recent fix exists: keep dead-reckoning on it
+    const gpsMaxAge = MAX_POSITION_AGE_MS_BY_OPERATOR[raw.operator] ?? MAX_POSITION_AGE_MS;
+    if (!live && previous?.plan && previous.fix === 'gps' && previous.shape === pattern!.shape && now - previous.plan.t0 < gpsMaxAge) {
+      d0 = distanceAt(previous.plan, now); t0 = now; live = true;
     }
     if (!live) { t0 = now; d0 = departedOrigin ? Math.min(Math.max(timeD(now), lastDepartedD), nextD) : (known[0]?.d ?? 0); }
     // never move a train backward on the server either (small regressions are feed noise)
@@ -146,7 +172,11 @@ export class Positioner {
     }
     if (!(fallbackSpeed > 2)) fallbackSpeed = DEFAULT_SPEED;
     const maxD = nextD === line.length || !known.length ? line.length : known[known.length - 1].d;
-    const plan: MotionPlan = { d0: Math.round(d0!), t0: t0!, fallbackSpeed: Math.round(fallbackSpeed * 10) / 10, stops: planStops, maxD: Math.round(maxD) };
+    // Cap: a bit above the observed speed (when moving) or the scheduled pace, within 15..72 m/s (72 = Acela top speed).
+    const observed = p?.speedMps && p.speedMps > 5 ? p.speedMps : 0;
+    const maxSpeed = Math.min(72, Math.max(15, observed ? observed * 1.3 : fallbackSpeed * 1.6));
+    const plan: MotionPlan = { d0: Math.round(d0!), t0: t0!, fallbackSpeed: Math.round(fallbackSpeed * 10) / 10,
+      maxSpeed: Math.round(maxSpeed * 10) / 10, stops: planStops, maxD: Math.round(maxD) };
 
     const dNow = distanceAt(plan, now);
     const pt = line.pointAt(dNow);
@@ -157,7 +187,7 @@ export class Positioner {
 
     return { ...base, fix: live ? 'gps' : raw.source === 'live' ? 'predicted' : 'timetable',
       shape: pattern!.shape, distM: Math.round(dNow), lat: pt.lonlat[1], lon: pt.lonlat[0], bearing: Math.round(pt.bearing),
-      speedMps: Math.round(speed * 10) / 10, status, updatedAt: live ? p!.at : raw.updatedAt, plan,
+      speedMps: Math.round(speed * 10) / 10, status, updatedAt: live ? t0! : raw.updatedAt, plan,
       progress: dDest > dOrigin ? Math.min(1, Math.max(0, (dNow - dOrigin) / (dDest - dOrigin))) : 0, next, stops };
   }
 }
