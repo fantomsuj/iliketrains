@@ -58,6 +58,13 @@ const server = http.createServer((req, res) => {
       return r ? sendJson(res, 200, { key, polyline: r.polyline, lengthM: r.lengthM, matchedFraction: r.matchedFraction }, 86400)
         : sendJson(res, 404, { error: 'unknown shape' });
     }
+    if ((m = /^\/api\/history\/(amtrak|lirr|mnr|njt)\/([^/]+)\/(\d{4}-\d{2}-\d{2})\/raw$/.exec(p))) {
+      const r = engine.history.raw(m[1], decodeURIComponent(m[2]), m[3]);
+      return r ? sendJson(res, 200, { ...r, raw: JSON.parse(r.raw) }) : sendJson(res, 404, { error: 'no record' });
+    }
+    if ((m = /^\/api\/history\/(amtrak|lirr|mnr|njt)\/([^/]+)$/.exec(p))) {
+      return sendJson(res, 200, engine.history.summary(m[1], decodeURIComponent(m[2]), engine.clock.now()));
+    }
     if ((m = /^\/api\/trains\/(.+)\/equipment\/raw$/.exec(p))) {
       const t = engine.train(decodeURIComponent(m[1]));
       if (!t) return sendJson(res, 404, { error: 'unknown train' });

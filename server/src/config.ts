@@ -30,5 +30,7 @@ export const config = {
   tilesFile: env.TILES_FILE ?? path.resolve(ROOT, '../tiles/dist/trains.pmtiles'),
   styleFile: path.resolve(ROOT, '../tiles/style/trains-dark.json'),
   routesFile: env.ROUTES_FILE ?? path.join(ROOT, 'data/derived/routes.json'),
+  /** Run history database and other state the server writes. */
+  dataDir: env.TRAINS_DATA_DIR ?? path.join(ROOT, 'data/state'),
   gtfsDir: path.join(ROOT, 'data/gtfs'),
 };

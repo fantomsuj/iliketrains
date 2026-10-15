@@ -114,6 +114,16 @@ export class GtfsFeed {
     return c.days[d.getUTCDay()];
   }
 
+  /** Does the service's weekly pattern include this weekday (0 = Sunday)? Ignores date ranges. */
+  runsOnWeekday(serviceId: string, dow: number): boolean {
+    const c = this.calendar.get(serviceId);
+    if (c) return c.days[dow];
+    for (const [date, ex] of this.calendarDates.get(serviceId) ?? []) {
+      if (ex === 1 && new Date(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T12:00:00Z`).getUTCDay() === dow) return true;
+    }
+    return false;
+  }
+
   /** Station-level id: the parent station when the feed uses platforms. */
   stationOf(stopId: string): string { return this.stops.get(stopId)?.parent || stopId; }
 }

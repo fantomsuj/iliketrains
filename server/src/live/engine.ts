@@ -14,6 +14,9 @@ import { StationIndex, tidyName } from './stations.ts';
 import { EventLog, lateness, trainLabel } from './events.ts';
 import { TrainTimeEquipment, POLL_MS as TRAINTIME_POLL_MS } from '../equipment/traintime.ts';
 import { amtrakTypical } from '../equipment/models.ts';
+import { HistoryStore } from '../history/store.ts';
+import { ArchiveClient } from '../history/archive.ts';
+import { HistoryRecorder, consistLabel } from '../history/recorder.ts';
 
 export type Broadcast = (msg: { type: string; [k: string]: unknown }) => void;
 
@@ -42,6 +45,7 @@ export class Engine {
   private schedules = new Map<string, ScheduleAdapter>();
   private polledOnce = new Set<string>();
   readonly equipment: TrainTimeEquipment;
+  readonly history: HistoryRecorder;
 
   constructor(routes: RouteIndex) {
     this.routes = routes;
@@ -51,6 +55,8 @@ export class Engine {
     if (config.demo) { const r = new ReplayFetcher(config.demoDir); this.fetcher = r; this.clock = r; }
     else { this.fetcher = new LiveFetcher(config.userAgent, config.recordDir); this.clock = realClock; }
     this.equipment = new TrainTimeEquipment(this.fetcher);
+    this.history = new HistoryRecorder(new HistoryStore(config.demo ? path.join(config.dataDir, 'demo') : config.dataDir),
+      config.demo ? null : new ArchiveClient(config.userAgent), this.feeds.get('amtrak')!);
 
     const f = (id: string) => this.feeds.get(id)!;
     const names: Record<string, string> = { amtrak: 'Amtrak', lirr: 'LIRR', mnr: 'Metro-North', njt: 'NJ Transit' };
@@ -114,19 +120,24 @@ export class Engine {
       let next: TrainState;
       try { next = this.positioner.position(raw, now, prev); }
       catch (e) { console.error(`[${adapterId}] could not position ${id}:`, e); if (prev) seen.add(id); continue; }
-      if (next.status === 'completed' || Number.isNaN(next.lat)) { this.trains.delete(id); continue; }
+      if (next.status === 'completed' || Number.isNaN(next.lat)) { this.recordRun(next); this.history.finish(next); this.trains.delete(id); continue; }
       seen.add(id);
       if (next.operator === 'lirr' || next.operator === 'mnr') {
         // posted tracks from the railroad's own app (the GTFS-RT feed rarely has them)
         const tracks = this.equipment.tracks(next.operator, next.trainNumber, next.serviceDate ?? undefined);
         for (const s of next.stops) { const tr = tracks.get(s.stationId); if (tr && !s.track) s.track = tr.track; }
       }
+      this.recordRun(next);
       newEvents.push(...this.events.diff(prev, next, now, quiet));
       this.trains.set(id, next);
       changed.push(summary(next));
     }
     const removed: string[] = [];
-    for (const id of this.byAdapter.get(adapterId) ?? []) if (!seen.has(id)) { this.trains.delete(id); removed.push(id); }
+    for (const id of this.byAdapter.get(adapterId) ?? []) if (!seen.has(id)) {
+      const gone = this.trains.get(id);
+      if (gone) this.history.finish(gone);
+      this.trains.delete(id); removed.push(id);
+    }
     this.byAdapter.set(adapterId, seen);
     this.health_.get(adapterId)!.trains = seen.size;
     this.emit({ type: 'trains', operator: adapterId, serverTime: now, trains: changed, removed });
@@ -141,6 +152,13 @@ export class Engine {
     const t = this.trains.get(id);
     if (!t) return undefined;
     return { ...t, equipment: this.equipmentFor(t) };
+  }
+
+  private recordRun(t: TrainState) {
+    try {
+      const c = t.operator === 'lirr' || t.operator === 'mnr' ? this.equipment.consist(t.operator, t.trainNumber, t.serviceDate ?? undefined) : null;
+      this.history.record(t, consistLabel(c));
+    } catch (e) { console.error('[history] record failed:', (e as Error).message); }
   }
 
   /** Live consist (LIRR, Metro-North) or the typical equipment for the service (Amtrak). */
