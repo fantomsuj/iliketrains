@@ -55,7 +55,8 @@ export class Engine {
     this.adapters.push(new GtfsRtAdapter({ id: 'lirr', label: 'LIRR (MTA GTFS-RT)', gtfs: f('lirr'), join: 'tripId', source: urlSource('lirr', config.mtaLirrUrl) }));
     this.adapters.push(new GtfsRtAdapter({ id: 'mnr', label: 'Metro-North (MTA GTFS-RT)', gtfs: f('mnr'), join: 'trainNumber', source: urlSource('mnr', config.mtaMnrUrl) }));
     const njtCreds = !!(config.njtToken || (config.njtUsername && config.njtPassword));
-    if (njtCreds || config.demo) {
+    const njtRecorded = this.fetcher instanceof ReplayFetcher && this.fetcher.has('njt-trips');
+    if (config.demo ? njtRecorded : njtCreds) {
       this.adapters.push(new GtfsRtAdapter({ id: 'njt', label: 'NJ Transit (GTFS-RT)', gtfs: f('njt'), join: 'tripIdThenBlock',
         source: njtSource(config.njtBaseUrl, config.njtToken, config.njtUsername, config.njtPassword) }));
     } else {
@@ -63,7 +64,7 @@ export class Engine {
       this.adapters.push(this.schedules.get('njt')!);
     }
     for (const a of this.adapters) this.health_.set(a.id, { id: a.id, label: a.label, enabled: a.enabled, note: a.disabledReason, lastOk: null, lastError: null, trains: 0 });
-    if (!njtCreds && !config.demo) this.health_.get('njt')!.note = 'NJT_API_TOKEN or NJT_USERNAME+NJT_PASSWORD not set: positions from the timetable only';
+    if (config.demo ? !njtRecorded : !njtCreds) this.health_.get('njt')!.note = 'NJT_API_TOKEN or NJT_USERNAME+NJT_PASSWORD not set: positions from the timetable only';
   }
 
   onBroadcast(b: Broadcast) { this.listeners.push(b); }

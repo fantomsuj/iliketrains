@@ -2,6 +2,7 @@
 // ReplayFetcher serves recorded responses against a virtual clock (demo mode).
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 export interface Clock { now(): number }
 export const realClock: Clock = { now: () => Date.now() };
@@ -34,14 +35,14 @@ export class LiveFetcher implements Fetcher {
     if (this.recordDir) {
       const dir = path.join(this.recordDir, key);
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, `${Date.now()}.bin`), body);
+      fs.writeFileSync(path.join(dir, `${Date.now()}.bin.gz`), zlib.gzipSync(body));
     }
     return body;
   }
 }
 
 /**
- * Plays back a directory recorded with TRAINS_RECORD_DIR: <dir>/<key>/<epochMs>.bin.
+ * Plays back a directory recorded with TRAINS_RECORD_DIR: <dir>/<key>/<epochMs>.bin.gz (or .bin).
  * Virtual time starts at the first recording and loops when it reaches the last one.
  */
 export class ReplayFetcher implements Fetcher, Clock {
@@ -52,8 +53,8 @@ export class ReplayFetcher implements Fetcher, Clock {
     for (const key of fs.readdirSync(dir)) {
       const sub = path.join(dir, key);
       if (!fs.statSync(sub).isDirectory()) continue;
-      const list = fs.readdirSync(sub).filter((f) => f.endsWith('.bin'))
-        .map((f) => ({ t: Number(f.replace('.bin', '')), file: path.join(sub, f) })).sort((a, b) => a.t - b.t);
+      const list = fs.readdirSync(sub).filter((f) => f.endsWith('.bin') || f.endsWith('.bin.gz'))
+        .map((f) => ({ t: Number(f.split('.')[0]), file: path.join(sub, f) })).sort((a, b) => a.t - b.t);
       if (list.length) this.files.set(key, list);
     }
     if (!this.files.size) throw new Error(`no recordings in ${dir}`);
@@ -66,12 +67,15 @@ export class ReplayFetcher implements Fetcher, Clock {
     return this.start + ((Date.now() - this.wallStart) % span);
   }
 
+  has(key: string): boolean { return this.files.has(key); }
+
   async get(key: string): Promise<Buffer | null> {
     const list = this.files.get(key);
     if (!list) return null;
     const t = this.now();
     let pick = list[0];
     for (const x of list) if (x.t <= t) pick = x; else break;
-    return fs.readFileSync(pick.file);
+    const body = fs.readFileSync(pick.file);
+    return pick.file.endsWith('.gz') ? zlib.gunzipSync(body) : body;
   }
 }
