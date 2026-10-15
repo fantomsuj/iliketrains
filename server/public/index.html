@@ -89,6 +89,15 @@ function pointAt(l, d) { d = Math.max(0, Math.min(l.length, d)); let lo = 0, hi 
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (l.cum[m] <= d) lo = m; else hi = m; }
   const a = l.coords[lo], b = l.coords[Math.min(lo + 1, l.coords.length - 1)], seg = l.cum[lo+1] - l.cum[lo] || 1, t = (d - l.cum[lo]) / seg;
   return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]; }
+function sliceLine(l, d0, d1) {
+  d0 = Math.max(0, d0); d1 = Math.min(l.length, d1);
+  const out = [pointAt(l, d0)];
+  for (let i = 0; i < l.cum.length; i++) if (l.cum[i] > d0 && l.cum[i] < d1) out.push(l.coords[i]);
+  out.push(pointAt(l, d1)); return out; }
+// The trail shows the track covered over the last TRAIL_S seconds at the train's current speed
+// (none while it stands at a station), so direction and motion read even when zoomed far out.
+const TRAIL_S = 180;
+const trailBack = (tr, s) => (s.status === 'enroute' && s.speedMps > 1 ? s.speedMps * TRAIL_S : 0);
 
 // ---- state ----
 const lines = new Map(); const pending = new Set();
@@ -97,10 +106,20 @@ let clockOffset = 0; // serverTime - Date.now()
 const now = () => Date.now() + clockOffset;
 let selected = null;
 
-async function ensureShape(key) {
-  if (!key || lines.has(key) || pending.has(key)) return; pending.add(key);
-  const r = await fetch('/api/shapes/' + encodeURIComponent(key)).then((r) => r.json());
-  lines.set(key, line(decode(r.polyline))); pending.delete(key);
+// Track geometry is fetched a few at a time: hundreds of parallel requests make the browser
+// refuse some (ERR_INSUFFICIENT_RESOURCES), and a train without its track cannot glide.
+const shapeQueue = []; let shapesInFlight = 0; const SHAPE_PARALLEL = 6;
+function ensureShape(key) {
+  if (!key || lines.has(key) || pending.has(key)) return; pending.add(key); shapeQueue.push(key); pumpShapes();
+}
+function pumpShapes() {
+  while (shapesInFlight < SHAPE_PARALLEL && shapeQueue.length) {
+    const key = shapeQueue.shift(); shapesInFlight++;
+    fetch('/api/shapes/' + encodeURIComponent(key)).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((r) => { lines.set(key, line(decode(r.polyline))); pending.delete(key); })
+      .catch(() => setTimeout(() => { pending.delete(key); ensureShape(key); }, 3000)) // retry later
+      .finally(() => { shapesInFlight--; pumpShapes(); });
+  }
 }
 function applyTrains(list) { for (const s of list) { const t = trains.get(s.id); if (t) t.s = s; else trains.set(s.id, { s, shown: null }); ensureShape(s.shape); } }
 const lateClass = (s) => s.status === 'cancelled' ? 'bad' : s.source === 'scheduled' ? 'sched' : s.delaySec == null ? 'sched' : s.delaySec >= 900 ? 'bad' : s.delaySec >= 300 ? 'late' : 'ontime';
@@ -131,6 +150,11 @@ map.on('load', async () => {
   map.addSource('stations', { type: 'geojson', data: { type: 'FeatureCollection', features: stations.stations.map((s) => ({ type: 'Feature', properties: { id: s.id, name: s.name, n: s.operators.length }, geometry: { type: 'Point', coordinates: [s.lon, s.lat] } })) } });
   map.addLayer({ id: 'station-dots', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['+', 1, ['get', 'n']], 13, ['+', 3, ['*', 1.5, ['get', 'n']]]], 'circle-color': '#0d1117', 'circle-stroke-color': '#c9d1d9', 'circle-stroke-width': 1.2 } });
   map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', minzoom: 10, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#9aa5b1', 'text-halo-color': '#0d1117', 'text-halo-width': 1.2 } });
+  // trail: the stretch of track each moving train covered in the last few minutes, fading out behind it
+  map.addSource('train-trails', { type: 'geojson', lineMetrics: true, data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'train-trail', type: 'line', source: 'train-trails', layout: { 'line-cap': 'round' }, paint: {
+    'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 13, 5],
+    'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(230,237,243,0)', 1, 'rgba(230,237,243,0.75)'] } });
   map.addSource('live-trains', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   // dot = the line's colour (identity); ring only when late (amber) or very late / cancelled (red)
   map.addLayer({ id: 'train-halo', type: 'circle', source: 'live-trains', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 7, 13, 16], 'circle-color': ['get', 'color'], 'circle-opacity': ['*', 0.22, ['get', 'opacity']], 'circle-blur': 0.7 } });
@@ -150,7 +174,7 @@ map.on('load', async () => {
 let last = performance.now();
 function frame(t) {
   const dt = Math.min(0.25, (t - last) / 1000); last = t;
-  const feats = []; const n = now();
+  const feats = [], trails = []; const n = now();
   for (const [id, tr] of trains) {
     const s = tr.s; const l = lines.get(s.shape);
     let coord;
@@ -160,11 +184,14 @@ function frame(t) {
       const r = smoothStep(tr.shown, target, dt);
       if (r.snapped) tr.fade = 0; tr.shown = r.d;
       coord = pointAt(l, tr.shown);
+      const back = trailBack(tr, s);
+      if (back > 30) trails.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: sliceLine(l, tr.shown - back, tr.shown) } });
     } else if (!Number.isNaN(s.lat)) coord = [s.lon, s.lat];
     else continue;
     tr.fade = Math.min(1, (tr.fade ?? 1) + dt * 2);
     feats.push({ type: 'Feature', properties: { id, color: s.color, status: STATUS_COLOR[lateClass(s)], alert: ['late', 'bad'].includes(lateClass(s)), scheduled: s.source === 'scheduled', opacity: tr.fade, label: s.trainNumber }, geometry: { type: 'Point', coordinates: coord } });
   }
+  map.getSource('train-trails')?.setData({ type: 'FeatureCollection', features: trails });
   map.getSource('live-trains')?.setData({ type: 'FeatureCollection', features: feats });
   document.getElementById('count').textContent = feats.length;
   if (selected?.type === 'train') tickPanel();
