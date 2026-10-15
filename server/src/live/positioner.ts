@@ -82,7 +82,7 @@ export class Positioner {
     const origin = tidyName(first?.name ?? first?.stationId ?? ''), destination = tidyName(raw.headsign || last?.name || '');
 
     const base = {
-      id: `${raw.operator}:${raw.tripId}`, operator: raw.operator, tripId: raw.tripId, trainNumber: raw.trainNumber,
+      id: `${raw.operator}:${raw.tripId}`, operator: raw.operator, tripId: raw.tripId, serviceDate: raw.serviceDate ?? null, trainNumber: raw.trainNumber,
       route: raw.route, routeName: raw.routeName, headsign: destination, color: raw.color ?? '#9aa5b1',
       delaySec: raw.delaySec, source: raw.source, origin, destination,
     };

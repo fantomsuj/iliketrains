@@ -117,7 +117,7 @@ export class GtfsRtAdapter implements FeedAdapter {
         ? { lat: v.position.latitude, lon: v.position.longitude, at: vAt, speedMps: v.position.speed ?? undefined } : undefined;
       const route = this.gtfs.routes.get(st?.routeId ?? tu.trip.routeId ?? '');
       out.push({
-        tripId: st?.id ?? tripId, operator: this.id, route: route?.id ?? '', routeName: route?.longName || route?.shortName || '',
+        tripId: st?.id ?? tripId, operator: this.id, serviceDate: startDate, route: route?.id ?? '', routeName: route?.longName || route?.shortName || '',
         trainNumber: st?.shortName || st?.blockId || number || 'Extra', // unscheduled extra train headsign: st?.headsign || stops[stops.length - 1].name,
         position, stops, delaySec: delay, source: 'live',
         updatedAt: Math.max(vAt, tu.timestamp ? Number(tu.timestamp) * 1000 : 0) || now,

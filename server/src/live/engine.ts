@@ -12,6 +12,8 @@ import { type Clock, type Fetcher, LiveFetcher, ReplayFetcher, realClock } from 
 import { Positioner } from './positioner.ts';
 import { StationIndex, tidyName } from './stations.ts';
 import { EventLog, lateness, trainLabel } from './events.ts';
+import { TrainTimeEquipment, POLL_MS as TRAINTIME_POLL_MS } from '../equipment/traintime.ts';
+import { amtrakTypical } from '../equipment/models.ts';
 
 export type Broadcast = (msg: { type: string; [k: string]: unknown }) => void;
 
@@ -39,6 +41,7 @@ export class Engine {
   private routes: RouteIndex;
   private schedules = new Map<string, ScheduleAdapter>();
   private polledOnce = new Set<string>();
+  readonly equipment: TrainTimeEquipment;
 
   constructor(routes: RouteIndex) {
     this.routes = routes;
@@ -47,6 +50,7 @@ export class Engine {
     this.positioner = new Positioner(routes, this.feeds, this.stations);
     if (config.demo) { const r = new ReplayFetcher(config.demoDir); this.fetcher = r; this.clock = r; }
     else { this.fetcher = new LiveFetcher(config.userAgent, config.recordDir); this.clock = realClock; }
+    this.equipment = new TrainTimeEquipment(this.fetcher);
 
     const f = (id: string) => this.feeds.get(id)!;
     const names: Record<string, string> = { amtrak: 'Amtrak', lirr: 'LIRR', mnr: 'Metro-North', njt: 'NJ Transit' };
@@ -71,6 +75,8 @@ export class Engine {
   private emit(msg: { type: string; [k: string]: unknown }) { for (const l of this.listeners) l(msg); }
 
   start() {
+    const eq = async () => { await this.equipment.poll(); setTimeout(eq, TRAINTIME_POLL_MS); };
+    void eq();
     for (const a of this.adapters) {
       if (!a.enabled) continue;
       const interval = (a.id === 'amtrak' ? Math.max(30, config.pollSeconds) : config.pollSeconds) * 1000;
@@ -110,6 +116,11 @@ export class Engine {
       catch (e) { console.error(`[${adapterId}] could not position ${id}:`, e); if (prev) seen.add(id); continue; }
       if (next.status === 'completed' || Number.isNaN(next.lat)) { this.trains.delete(id); continue; }
       seen.add(id);
+      if (next.operator === 'lirr' || next.operator === 'mnr') {
+        // posted tracks from the railroad's own app (the GTFS-RT feed rarely has them)
+        const tracks = this.equipment.tracks(next.operator, next.trainNumber, next.serviceDate ?? undefined);
+        for (const s of next.stops) { const tr = tracks.get(s.stationId); if (tr && !s.track) s.track = tr.track; }
+      }
       newEvents.push(...this.events.diff(prev, next, now, quiet));
       this.trains.set(id, next);
       changed.push(summary(next));
@@ -126,10 +137,22 @@ export class Engine {
     return { serverTime: this.clock.now(), demo: config.demo, trains: [...this.trains.values()].map(summary), events: this.events.recent(30) };
   }
 
-  train(id: string): TrainState | undefined { return this.trains.get(id); }
+  train(id: string): (TrainState & { equipment: unknown }) | undefined {
+    const t = this.trains.get(id);
+    if (!t) return undefined;
+    return { ...t, equipment: this.equipmentFor(t) };
+  }
+
+  /** Live consist (LIRR, Metro-North) or the typical equipment for the service (Amtrak). */
+  equipmentFor(t: TrainState) {
+    if (t.operator === 'lirr' || t.operator === 'mnr') return this.equipment.consist(t.operator, t.trainNumber, t.serviceDate ?? undefined);
+    if (t.operator === 'amtrak') { const e = amtrakTypical(t.routeName); return e ? { live: false as const, ...e } : null; }
+    return { live: false as const, summary: 'Not published', detail: 'NJ Transit shares car details only with registered developers (NJT_* settings)', source: 'https://developer.njtransit.com/' };
+  }
 
   health() {
     return { ok: true, demo: config.demo, serverTime: this.clock.now(), trains: this.trains.size, routesGeneratedAt: this.routes.file.generatedAt,
+      equipment: { lastOk: this.equipment.lastOk || null, lastError: this.equipment.lastError },
       feeds: [...this.health_.values()], gtfs: [...this.feeds.values()].map((f) => ({ id: f.id, fetchedAt: f.fetchedAt })) };
   }
 

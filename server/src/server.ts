@@ -58,6 +58,11 @@ const server = http.createServer((req, res) => {
       return r ? sendJson(res, 200, { key, polyline: r.polyline, lengthM: r.lengthM, matchedFraction: r.matchedFraction }, 86400)
         : sendJson(res, 404, { error: 'unknown shape' });
     }
+    if ((m = /^\/api\/trains\/(.+)\/equipment\/raw$/.exec(p))) {
+      const t = engine.train(decodeURIComponent(m[1]));
+      if (!t) return sendJson(res, 404, { error: 'unknown train' });
+      return sendJson(res, 200, { source: 'MTA TrainTime (backend-unified.mylirr.org)', record: engine.equipment.raw(t.operator, t.trainNumber, t.serviceDate ?? undefined) });
+    }
     if ((m = /^\/api\/trains\/(.+)$/.exec(p))) {
       const t = engine.train(decodeURIComponent(m[1]));
       return t ? sendJson(res, 200, t) : sendJson(res, 404, { error: 'unknown train' });

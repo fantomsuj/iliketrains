@@ -19,6 +19,8 @@ export interface RawStop {
 export interface RawTrain {
   tripId: string;
   operator: Operator;
+  /** Service day the trip belongs to, YYYYMMDD (local New York date of its scheduled start). */
+  serviceDate?: string;
   route: string;                // route id (GTFS) or route name (Amtrak)
   routeName: string;
   trainNumber: string;
@@ -59,6 +61,7 @@ export interface TrainState {
   id: string;                   // `${operator}:${tripId}`
   operator: Operator;
   tripId: string;
+  serviceDate: string | null;
   trainNumber: string;
   route: string; routeName: string; headsign: string; color: string;
   shape: string | null;         // route geometry key, or null when unmatched (raw position only)

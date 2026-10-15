@@ -46,7 +46,7 @@ export class ScheduleAdapter implements FeedAdapter {
       return { stationId: station, name: this.gtfs.stops.get(station)?.name, schArr, schDep, estArr: schArr, estDep: schDep, departed: schDep < now };
     });
     return {
-      tripId: `${t.id}@${date}`, operator: this.id, route: t.routeId, routeName: route?.longName || route?.shortName || '',
+      tripId: `${t.id}@${date}`, operator: this.id, serviceDate: date, route: t.routeId, routeName: route?.longName || route?.shortName || '',
       trainNumber: t.shortName || t.blockId || t.id, headsign: t.headsign || stops[stops.length - 1].name,
       stops, delaySec: null, source: 'scheduled', updatedAt: now,
       shape: { shapeId: t.shapeId, stations: t.stopIds.map((s) => this.gtfs.stationOf(s)) },

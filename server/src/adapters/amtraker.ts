@@ -1,7 +1,7 @@
 // Amtrak via the unofficial Amtraker v3 API (https://github.com/piemadd/amtraker-v3).
 // Designed so the URL can point at a self-hosted Amtraker instance later (AMTRAKER_URL).
 import type { RawStop, RawTrain } from '../model.ts';
-import type { GtfsFeed, Trip } from '../gtfs.ts';
+import { type GtfsFeed, type Trip, serviceDay } from '../gtfs.ts';
 import { orderedCoverage } from '../routes.ts';
 import { inRegion } from '../region.ts';
 import type { AdapterContext, FeedAdapter } from './adapter.ts';
@@ -78,7 +78,7 @@ export class AmtrakerAdapter implements FeedAdapter {
       const st = this.staticTrip(t.trainNum, stations.map((s) => s.code));
       const lastSeen = ms(t.lastValTS) ?? ms(t.updatedAt) ?? ctx.clock.now();
       out.push({
-        tripId: t.trainID, operator: 'amtrak', route: t.routeName, routeName: t.routeName,
+        tripId: t.trainID, operator: 'amtrak', serviceDate: stops[0]?.schDep ? serviceDay(stops[0].schDep).date : undefined, route: t.routeName, routeName: t.routeName,
         trainNumber: t.trainNum, headsign: t.destName,
         position: t.trainState === 'Predeparture' ? undefined : { lat: t.lat, lon: t.lon, at: lastSeen, speedMps: (t.velocity || 0) * MPH },
         stops, delaySec: sch !== undefined && est !== undefined ? Math.round((est - sch) / 1000) : null,
