@@ -145,7 +145,7 @@ function jewels() {
     const glass = k.cylinder(x, LAMP_Y, JEWEL_R, JEWEL_Z, JEWEL_H, P, 40, 0.6);
     const facets = L(k.ring(x, LAMP_Y, JEWEL_R - 2, JEWEL_TOP, P, 32) + k.ring(x, LAMP_Y, 1.6, JEWEL_TOP, P, 16), { tone: "faint" });
     const band = L(k.sideArc(x, LAMP_Y, JEWEL_R, JEWEL_Z + 1, P, 24), { tone: "faint" });
-    return `<g data-lamp="${index}">${S(glass, { tone: "hi", crease: "lo", inner: band })}${facets}<g data-glow style="opacity:${index === 0 ? 1 : 0}"><path class="ps-glow" d="${k.haloOf({ x: x - BEZEL_R - 3, y: LAMP_Y - BEZEL_R - 3, w: (BEZEL_R + 3) * 2, d: (BEZEL_R + 3) * 2, r: BEZEL_R + 3 }, CONSOLE_H, 0.1, P)}"/><g class="ps-on">${S(glass, { tone: "hi", lit: true, inner: band })}</g>${L(k.ring(x, LAMP_Y, JEWEL_R - 2, JEWEL_TOP, P, 32), { tone: "faint" })}<path class="ps-core" d="${k.haloOf({ x: x - 2.2, y: LAMP_Y - 2.2, w: 4.4, d: 4.4, r: 2.2 }, JEWEL_TOP, 0.05, P)}"/></g></g>`;
+    return `<g data-lamp="${index}">${S(glass, { tone: "mid", inner: band })}${facets}<g data-glow style="opacity:${index === 0 ? 1 : 0}"><path class="ps-glow" d="${k.haloOf({ x: x - BEZEL_R - 3, y: LAMP_Y - BEZEL_R - 3, w: (BEZEL_R + 3) * 2, d: (BEZEL_R + 3) * 2, r: BEZEL_R + 3 }, CONSOLE_H, 0.1, P)}"/><g class="ps-on">${S(glass, { tone: "hi", lit: true, inner: band })}</g>${L(k.ring(x, LAMP_Y, JEWEL_R - 2, JEWEL_TOP, P, 32), { tone: "faint" })}<path class="ps-core" d="${k.haloOf({ x: x - 2.2, y: LAMP_Y - 2.2, w: 4.4, d: 4.4, r: 2.2 }, JEWEL_TOP, 0.05, P)}"/></g></g>`;
   }).join("");
 }
 
@@ -173,8 +173,8 @@ function shuttle() {
   out.push(L(k.planOutline(k.insetPlan(SHUTTLE, 3), SHUTTLE_TOP, P, 3), { tone: "faint" }));
   out.push(D(k.corners(SHUTTLE, 5.5).map(([x, y]) => at([x, y, SHUTTLE_TOP])), { size: 0.45 }));
   // pointer blade reaching back over the index strip
-  out.push(S(k.slabOf({ x: -1.6, y: -24, w: 3.2, d: 10, r: 0.8 }, SHUTTLE_TOP, 1.2, P, 2), { tone: "hi", crease: "lo" }));
-  out.push(L(k.lineOnTop([0, -23], [0, -15.4], SHUTTLE_TOP + 1.2, P), { tone: "lo" }));
+  out.push(S(k.slabOf({ x: -1.6, y: -24, w: 3.2, d: 14, r: 0.8 }, SHUTTLE_TOP, 1.2, P, 2), { tone: "hi", crease: "lo" }));
+  out.push(D([at([0, -12.6, SHUTTLE_TOP + 1.2])], { size: 0.45 }));
   // knurled pull on the front face
   out.push(S(k.slabOf({ x: -2, y: SHUTTLE.y + SHUTTLE.d - 1, w: 4, d: 4, r: 1 }, RAIL_H + 1, 2.6, P, 2), { tone: "mid", crease: "none" }));
   out.push(S(k.cylinder(0, SHUTTLE.y + SHUTTLE.d + 4, 3, RAIL_H, 5, P, 20), { tone: "mid" }));
@@ -236,7 +236,8 @@ function odometer() {
   const knob = [ODO.x + 50, ODO.y + 15];
   out.push(S(k.cylinder(knob[0], knob[1], 4.6, ODO_H, 4, P, 28), { tone: "mid" }));
   out.push(L(k.knurl(knob[0], knob[1], 4.6, ODO_H, ODO_H + 4, 28, P), { tone: "lo" }));
-  out.push(L(k.lineOnTop([knob[0] - 2, knob[1]], [knob[0] + 3.6, knob[1]], ODO_H + 4, P), { tone: "hi" }));
+  out.push(L(k.lineOnTop([knob[0], knob[1]], [knob[0] + 4.6, knob[1]], ODO_H + 4, P), { tone: "hi" }));
+  out.push(D([at([knob[0], knob[1], ODO_H + 4])], { size: 0.5, tone: "hi" }));
   // vents on the +x face
   const sideSlot = (y, z0, z1) => k.pathOf(k.roundedPlan({ x: y - 0.8, y: z0, w: 1.6, d: z1 - z0, r: 0.8 }, 4).map(([u, z]) => at([ODO_SIDE, u, z])), true);
   out.push(L([22, 26, 30, 34, 38].map((y) => sideSlot(y, 5, 15)).join(""), { tone: "lo" }));
@@ -438,6 +439,7 @@ glow = [0, 1, 2].map((i) => (i === shownSource() ? 1 : 0));
 pinLevel = [0, 1, 2].map((i) => (i === opIndex ? 1 : 0));
 shuttleX = LAMP_X[shownSource()];
 draw(); describe();
+window.__positionSource = { get op() { return opIndex; }, get shuttle() { return shuttleX; }, get age() { return needleState.at; } };
 `;
 
 const css = `
