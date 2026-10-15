@@ -89,6 +89,31 @@ function pointAt(l, d) { d = Math.max(0, Math.min(l.length, d)); let lo = 0, hi 
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (l.cum[m] <= d) lo = m; else hi = m; }
   const a = l.coords[lo], b = l.coords[Math.min(lo + 1, l.coords.length - 1)], seg = l.cum[lo+1] - l.cum[lo] || 1, t = (d - l.cum[lo]) / seg;
   return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]; }
+function bearingOf(a, b) {
+  const y = Math.sin((b[0] - a[0]) * RAD) * Math.cos(b[1] * RAD);
+  const x = Math.cos(a[1] * RAD) * Math.sin(b[1] * RAD) - Math.sin(a[1] * RAD) * Math.cos(b[1] * RAD) * Math.cos((b[0] - a[0]) * RAD);
+  return (Math.atan2(y, x) / RAD + 360) % 360; }
+// A train seen from above, nose up: rounded body in the line colour, dark windscreen, headlight,
+// white rim. A late train gets an amber or red rim; a train not yet running is hollow.
+function addTrainIcon(id) {
+  if (map.hasImage(id)) return;
+  const [, color, ring, sched] = id.split('|');
+  const k = 2, W = 26, H = 40, c = document.createElement('canvas'); c.width = W * k; c.height = H * k;
+  const g = c.getContext('2d'); g.scale(k, k);
+  const body = (inset) => { const x = 5 + inset, y = 3 + inset, w = W - 10 - inset * 2, h = H - 6 - inset * 2, r = w / 2;
+    g.beginPath(); g.moveTo(x, y + r); g.arc(x + r, y + r, r, Math.PI, 0); g.lineTo(x + w, y + h - 4); g.quadraticCurveTo(x + w, y + h, x + w - 4, y + h);
+    g.lineTo(x + 4, y + h); g.quadraticCurveTo(x, y + h, x, y + h - 4); g.closePath(); };
+  g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 3; body(-1.6); g.fillStyle = ring || '#ffffff'; g.fill(); g.shadowBlur = 0;
+  body(ring ? 0.6 : 0.2); g.fillStyle = sched ? '#0d1117' : color; g.fill();
+  if (sched) { body(1.8); g.strokeStyle = color; g.lineWidth = 1.6; g.stroke(); }
+  // windscreen
+  g.beginPath(); g.moveTo(8.5, 12); g.quadraticCurveTo(W / 2, 5.5, W - 8.5, 12); g.lineTo(W - 9, 14.5); g.quadraticCurveTo(W / 2, 11, 9, 14.5); g.closePath();
+  g.fillStyle = sched ? color : 'rgba(13,17,23,.85)'; g.fill();
+  // headlight and a roof line
+  g.beginPath(); g.arc(W / 2, 7.2, 1.3, 0, Math.PI * 2); g.fillStyle = '#fff7d6'; g.fill();
+  g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(W / 2 - 0.7, 18, 1.4, H - 25);
+  map.addImage(id, g.getImageData(0, 0, W * k, H * k), { pixelRatio: k });
+}
 function sliceLine(l, d0, d1) {
   d0 = Math.max(0, d0); d1 = Math.min(l.length, d1);
   const out = [pointAt(l, d0)];
@@ -158,11 +183,13 @@ map.on('load', async () => {
   map.addSource('live-trains', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   // dot = the line's colour (identity); ring only when late (amber) or very late / cancelled (red)
   map.addLayer({ id: 'train-halo', type: 'circle', source: 'live-trains', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 7, 13, 16], 'circle-color': ['get', 'color'], 'circle-opacity': ['*', 0.22, ['get', 'opacity']], 'circle-blur': 0.7 } });
-  map.addLayer({ id: 'train-dot', type: 'circle', source: 'live-trains', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 2.6, 13, 6], 'circle-color': ['case', ['get', 'scheduled'], '#0d1117', ['get', 'color']],
-    'circle-stroke-color': ['case', ['get', 'alert'], ['get', 'status'], ['get', 'scheduled'], ['get', 'color'], '#e6edf3'],
-    'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'alert'], 1.6, 0.6], 13, ['case', ['get', 'alert'], 3, 1.4]],
-    'circle-opacity': ['get', 'opacity'], 'circle-stroke-opacity': ['get', 'opacity'] } });
-  map.addLayer({ id: 'train-label', type: 'symbol', source: 'live-trains', minzoom: 10, layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, -1.3], 'text-allow-overlap': false }, paint: { 'text-color': '#e6edf3', 'text-halo-color': '#0d1117', 'text-halo-width': 1.2 } });
+  // each train is a small top-down train in its line's colour, nose pointing the way it travels
+  map.addLayer({ id: 'train-dot', type: 'symbol', source: 'live-trains', layout: {
+    'icon-image': ['get', 'icon'], 'icon-rotate': ['get', 'bearing'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map',
+    'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.42, 10, 0.7, 14, 1.05], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+    paint: { 'icon-opacity': ['get', 'opacity'] } });
+  map.on('styleimagemissing', (e) => { if (e.id.startsWith('train|')) addTrainIcon(e.id); });
+  map.addLayer({ id: 'train-label', type: 'symbol', source: 'live-trains', minzoom: 10, layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, -1.6], 'text-allow-overlap': false }, paint: { 'text-color': '#e6edf3', 'text-halo-color': '#0d1117', 'text-halo-width': 1.2 } });
   map.on('click', 'train-dot', (e) => openTrain(e.features[0].properties.id));
   map.on('click', 'station-dots', (e) => openStation(e.features[0].properties.id));
   for (const l of ['train-dot', 'station-dots']) { map.on('mouseenter', l, () => map.getCanvas().style.cursor = 'pointer'); map.on('mouseleave', l, () => map.getCanvas().style.cursor = ''); }
@@ -184,12 +211,16 @@ function frame(t) {
       const r = smoothStep(tr.shown, target, dt);
       if (r.snapped) tr.fade = 0; tr.shown = r.d;
       coord = pointAt(l, tr.shown);
+      const ahead = pointAt(l, tr.shown + 60), behind = pointAt(l, tr.shown - 60);
+      if (ahead[0] !== behind[0] || ahead[1] !== behind[1]) tr.bearing = bearingOf(behind, ahead);
       const back = trailBack(tr, s);
       if (back > 30) trails.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: sliceLine(l, tr.shown - back, tr.shown) } });
     } else if (!Number.isNaN(s.lat)) coord = [s.lon, s.lat];
     else continue;
     tr.fade = Math.min(1, (tr.fade ?? 1) + dt * 2);
-    feats.push({ type: 'Feature', properties: { id, color: s.color, status: STATUS_COLOR[lateClass(s)], alert: ['late', 'bad'].includes(lateClass(s)), scheduled: s.source === 'scheduled', opacity: tr.fade, label: s.trainNumber }, geometry: { type: 'Point', coordinates: coord } });
+    const lc = lateClass(s), alert = lc === 'late' || lc === 'bad';
+    const icon = `train|${s.color}|${alert ? STATUS_COLOR[lc] : ''}|${s.source === 'scheduled' ? 's' : ''}`;
+    feats.push({ type: 'Feature', properties: { id, color: s.color, status: STATUS_COLOR[lc], alert, scheduled: s.source === 'scheduled', opacity: tr.fade, label: s.trainNumber, icon, bearing: tr.bearing ?? s.bearing ?? 0 }, geometry: { type: 'Point', coordinates: coord } });
   }
   map.getSource('train-trails')?.setData({ type: 'FeatureCollection', features: trails });
   map.getSource('live-trains')?.setData({ type: 'FeatureCollection', features: feats });
