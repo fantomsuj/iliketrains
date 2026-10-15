@@ -54,6 +54,22 @@
   .day.flagged { background:repeating-linear-gradient(135deg, #3a4654 0 3px, transparent 3px 6px) !important; border:1px solid #3a4654; }
   .day.none { background:#1c2530 !important; height:6px !important; }
   .day-labels { display:flex; justify-content:space-between; color:var(--dim); font-size:10px; margin-top:4px; }
+  .chips { display:flex; gap:6px; margin-bottom:8px; } .chip { font: 11px/1 "SF Mono", ui-monospace, monospace; padding:4px 7px; border:1px solid var(--line); border-radius:6px; color:var(--dim); white-space:nowrap; }
+  .st-status { display:flex; gap:14px; align-items:center; margin-top:16px; padding:14px; border:1px solid var(--line); border-radius:14px; background:#0d1117aa; }
+  .st-dot { flex:0 0 auto; width:10px; height:10px; border-radius:50%; margin:0 4px; }
+  .st-h { margin:22px 0 2px; font-size:17px; font-weight:700; letter-spacing:-.01em; }
+  .st-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px 12px; margin-top:12px; }
+  .st-grid b { display:block; font-size:26px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .st-grid small { display:block; font-size:13px; } .st-grid i { display:block; font-style:normal; color:var(--dim); font-size:11px; margin-top:2px; }
+  .st-bar { display:flex; gap:3px; margin-top:10px; }
+  .st-bar > div { min-width:22px; display:flex; flex-direction:column; }
+  .st-pct { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; } .st-n { font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; margin-top:3px; }
+  .st-seg { height:16px; border-radius:3px; margin-top:3px; }
+  .st-legend { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:8px; font-size:11px; color:var(--dim); }
+  .st-legend i { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:5px; } .st-legend em { font-style:normal; opacity:.6; }
+  .st-dests > div { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+  .st-dests .st-dn { flex:1; font-size:15px; } .st-dests b { font-variant-numeric:tabular-nums; } .st-dests small { color:var(--dim); font-size:10px; letter-spacing:.08em; text-transform:uppercase; width:42px; }
+  .trk { display:inline-block; background:#f5c542; color:#1a1400; font-weight:700; font-size:11px; padding:2px 6px; border-radius:5px; margin-right:8px; vertical-align:1px; }
   #daydetail { margin-top:8px; font-size:12px; color:var(--dim); min-height:16px; line-height:1.5; } #daydetail a { color:var(--dim); }
 </style>
 </head>
@@ -174,6 +190,8 @@ map.on('load', async () => {
   const stations = await fetch('/api/stations').then((r) => r.json());
   map.addSource('stations', { type: 'geojson', data: { type: 'FeatureCollection', features: stations.stations.map((s) => ({ type: 'Feature', properties: { id: s.id, name: s.name, n: s.operators.length }, geometry: { type: 'Point', coordinates: [s.lon, s.lat] } })) } });
   map.addLayer({ id: 'station-dots', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['+', 1, ['get', 'n']], 13, ['+', 3, ['*', 1.5, ['get', 'n']]]], 'circle-color': '#0d1117', 'circle-stroke-color': '#c9d1d9', 'circle-stroke-width': 1.2 } });
+  // an invisible, larger target so stations are easy to tap
+  map.addLayer({ id: 'station-hit', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': 12, 'circle-opacity': 0 } });
   map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', minzoom: 10, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#9aa5b1', 'text-halo-color': '#0d1117', 'text-halo-width': 1.2 } });
   // trail: the stretch of track each moving train covered in the last few minutes, fading out behind it
   map.addSource('train-trails', { type: 'geojson', lineMetrics: true, data: { type: 'FeatureCollection', features: [] } });
@@ -191,7 +209,8 @@ map.on('load', async () => {
   map.on('styleimagemissing', (e) => { if (e.id.startsWith('train|')) addTrainIcon(e.id); });
   map.addLayer({ id: 'train-label', type: 'symbol', source: 'live-trains', minzoom: 10, layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, -1.6], 'text-allow-overlap': false }, paint: { 'text-color': '#e6edf3', 'text-halo-color': '#0d1117', 'text-halo-width': 1.2 } });
   map.on('click', 'train-dot', (e) => openTrain(e.features[0].properties.id));
-  map.on('click', 'station-dots', (e) => openStation(e.features[0].properties.id));
+  map.on('click', 'station-hit', (e) => { if (!map.queryRenderedFeatures(e.point, { layers: ['train-dot'] }).length) openStation(e.features[0].properties.id); });
+  map.on('mouseenter', 'station-hit', () => map.getCanvas().style.cursor = 'pointer'); map.on('mouseleave', 'station-hit', () => map.getCanvas().style.cursor = '');
   for (const l of ['train-dot', 'station-dots']) { map.on('mouseenter', l, () => map.getCanvas().style.cursor = 'pointer'); map.on('mouseleave', l, () => map.getCanvas().style.cursor = ''); }
   await boot();
   requestAnimationFrame(frame);
@@ -347,18 +366,51 @@ function tickPanel() {
   const bar = document.getElementById('pbar'), dot = document.getElementById('pdot');
   if (bar) bar.style.width = (p * 100).toFixed(2) + '%'; if (dot) dot.style.left = (p * 100).toFixed(2) + '%';
 }
+const hourLabel = (h) => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`;
+const OP_LABEL = { amtrak: 'Amtrak', lirr: 'LIRR', mnr: 'Metro-North', njt: 'NJ Transit' };
+const STATUS_TONE = { ok: 'var(--ontime)', minor: 'var(--late)', major: 'var(--bad)', unknown: 'var(--sched)' };
 async function openStation(id) {
-  const b = await fetch(`/api/stations/${encodeURIComponent(id)}/board`).then((r) => r.json());
+  const [b, st] = await Promise.all([
+    fetch(`/api/stations/${encodeURIComponent(id)}/board`).then((r) => r.json()),
+    fetch(`/api/stations/${encodeURIComponent(id)}/stats`).then((r) => r.ok ? r.json() : null)]);
   selected = { type: 'station', id };
   const rows = b.rows.filter((r) => r.kind === 'departure' && (r.estimated ?? r.scheduled) >= now() - 5 * 60000).slice(0, 40);
+  const localTime = new Date(now()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' });
+  const chips = [b.hub.id.startsWith('amtrak:') && st?.hub.code ? st.hub.code : null, localTime].filter(Boolean).map((c) => `<span class="chip">${esc(c)}</span>`).join('');
+  let stats = '';
+  if (st) {
+    const total = st.departures || 1, top = st.lines.slice(0, 4), other = st.lines.slice(4).reduce((a, l) => a + l.count, 0);
+    const segs = [...top.map((l) => ({ label: l.name, op: l.operator, color: l.color, count: l.count })), ...(other ? [{ label: 'Other', color: '#3a4654', count: other }] : [])];
+    const s = st.status;
+    stats = `<div class="st-status"><span class="st-dot" style="background:${STATUS_TONE[s.level]};box-shadow:0 0 0 5px color-mix(in srgb, ${STATUS_TONE[s.level]} 25%, transparent)"></span>
+        <div><div style="color:${STATUS_TONE[s.level]};font-weight:600;font-size:16px">${esc(s.text)}</div>
+        <div class="eq-sub">${s.liveSoon ? `${s.lateSoon} of ${s.liveSoon} live departures in the next hour ${s.lateSoon === 1 ? 'is' : 'are'} late or cancelled` : 'Status comes from live trains due in the next hour'}</div></div></div>
+      <div class="st-h">Station stats</div><div class="eq-sub">Today by the timetable</div>
+      <div class="st-grid">
+        <div><b>${st.departures}</b><small>Departures</small><i>${st.remaining} still to go</i></div>
+        <div><b>${st.lines.length}</b><small>Lines</small><i>${st.hub.operators.map((o) => OP_LABEL[o] ?? o).join(' · ')}</i></div>
+        <div><b>${st.stationsServed}</b><small>Stations served</small><i>without changing trains</i></div>
+        <div><b>${st.busiestHour == null ? '–' : hourLabel(st.busiestHour)}</b><small>Busiest hour</small><i>${st.busiestHour == null ? '' : `${st.perHour[st.busiestHour]} departures`}</i></div>
+      </div>
+      <div class="st-h">Busiest lines</div>
+      <div class="st-bar">${segs.map((g) => `<div style="flex:${g.count}" title="${esc(g.label)}: ${g.count} departures">
+          <span class="st-pct">${Math.round((g.count / total) * 100)}%</span><span class="st-seg" style="background:${esc(g.color)}"></span><span class="st-n">${g.count}</span></div>`).join('')}</div>
+      <div class="st-legend">${segs.map((g) => `<span><i style="background:${esc(g.color)}"></i>${esc(g.label)}${g.op && st.hub.operators.length > 1 ? ` <em>${esc(OP_LABEL[g.op] ?? g.op)}</em>` : ''}</span>`).join('')}</div>
+      <div class="st-h">Busiest destinations</div>
+      <div class="st-dests">${st.destinations.slice(0, 6).map((d) => `<div><span class="chip">${esc(OP_LABEL[d.operator] ?? d.operator)}</span><span class="st-dn">${esc(d.name)}</span><b>${d.count}</b><small>trains</small></div>`).join('')}</div>`;
+  }
   panel.innerHTML = `<span class="x" onclick="document.getElementById('panel').style.display='none'">×</span>
-    <div class="op">${b.hub.operators.map((o) => o === 'amtrak' ? 'Amtrak' : o.toUpperCase()).join(' · ')}</div>
-    <div class="big">${esc(b.hub.name)}</div><div style="color:var(--dim)">Departures</div>
+    <div class="chips">${chips}</div>
+    <div class="big">${esc(b.hub.name)}</div>
+    <div class="op" style="margin-top:2px">${b.hub.operators.map((o) => OP_LABEL[o] ?? o.toUpperCase()).join(' · ')}</div>
+    ${stats}
+    <div class="st-h">Departures</div>
     <table>${rows.map((r) => { const cls = r.status === 'Cancelled' ? 'bad' : r.source === 'scheduled' ? 'sched' : (r.delaySec ?? 0) >= 300 ? 'late' : 'ontime';
-      return `<tr style="cursor:${r.trainId ? 'pointer' : 'default'}" ${r.trainId ? `onclick="window.__openTrain('${esc(r.trainId)}')"` : ''}><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${esc(r.color)};margin-right:6px"></span><b>${esc(r.trainNumber)}</b> ${esc(r.destination)}<div style="color:var(--dim);font-size:12px">${esc(r.label)}${r.track ? ' · Trk ' + esc(r.track) : ''}</div></td>
-      <td class="time"><b class="${cls}">${hm(r.estimated ?? r.scheduled)}</b><div class="${cls}" style="font-size:12px">${esc(r.status)}</div></td></tr>`; }).join('')}</table>`;
+      return `<tr style="cursor:${r.trainId ? 'pointer' : 'default'}" ${r.trainId ? `onclick="window.__openTrain('${esc(r.trainId)}')"` : ''}><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${esc(r.color)};margin-right:6px"></span><b>${esc(r.trainNumber)}</b> ${esc(r.destination)}<div style="color:var(--dim);font-size:12px">${esc(r.label)}</div></td>
+      <td class="time">${r.track ? `<span class="trk">${esc(r.track)}</span>` : ''}<b class="${cls}">${hm(r.estimated ?? r.scheduled)}</b><div class="${cls}" style="font-size:12px">${esc(r.status)}</div></td></tr>`; }).join('')}</table>
+    <div class="raw"><a href="/api/stations/${encodeURIComponent(id)}/stats" target="_blank">Raw stats</a> · <a href="/api/stations/${encodeURIComponent(id)}/board" target="_blank">Raw board</a></div>`;
   panel.style.display = 'block';
-  map.easeTo({ center: [b.hub.lon, b.hub.lat], zoom: Math.max(map.getZoom(), 11), duration: 900 });
+  map.easeTo({ center: [b.hub.lon, b.hub.lat], zoom: Math.max(map.getZoom(), 12), duration: 900 });
 }
 window.__openTrain = openTrain; window.__openStation = openStation;
 

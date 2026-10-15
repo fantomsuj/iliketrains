@@ -14,7 +14,7 @@ import { StationIndex, tidyName } from './stations.ts';
 import { EventLog, lateness, trainLabel } from './events.ts';
 import { TrainTimeEquipment, POLL_MS as TRAINTIME_POLL_MS } from '../equipment/traintime.ts';
 import { amtrakTypical } from '../equipment/models.ts';
-import { HistoryStore } from '../history/store.ts';
+import { HistoryStore, onTimeThresholdSec } from '../history/store.ts';
 import { ArchiveClient } from '../history/archive.ts';
 import { HistoryRecorder, consistLabel } from '../history/recorder.ts';
 
@@ -232,9 +232,58 @@ export class Engine {
     return { hub: { id: hub.id, name: hub.name, lat: hub.lonlat[1], lon: hub.lonlat[0], operators: hub.operators }, serverTime: now, rows };
   }
 
-  private stationTrips = new Map<string, Map<string, number[]>>(); // operator -> station -> trip indexes
-  private tripLists = new Map<string, ReturnType<GtfsFeed['trips']['get']>[]>();
-  private scheduledAt(sched: ScheduleAdapter, op: string, stationId: string, date: string, midnight: number, now: number): RawTrain[] {
+  /**
+   * A station's day by the numbers, from the timetables for today's service day: departures,
+   * lines, stations served, busiest lines and destinations. Plus a live status from the board.
+   */
+  stationStats(hubId: string) {
+    const hub = this.stations.hub(hubId);
+    if (!hub) return undefined;
+    const now = this.clock.now();
+    const { date, midnight } = serviceDay(now);
+    const lines = new Map<string, { operator: string; name: string; color: string; count: number }>();
+    const dests = new Map<string, { name: string; operator: string; count: number }>();
+    const served = new Set<string>();
+    let departures = 0, remaining = 0;
+    const perHour = new Array(24).fill(0);
+    const hourOf = (ms: number) => Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }).format(new Date(ms)));
+    for (const m of hub.members) {
+      const feed = this.feeds.get(m.operator); if (!feed) continue;
+      for (const i of this.tripsAt(m.operator, m.id)) {
+        const t = this.tripLists.get(m.operator)![i]!;
+        const route = feed.routes.get(t.routeId);
+        if (route?.type !== 2 || !feed.runsOn(t.serviceId, date)) continue;
+        const j = t.stopIds.findIndex((sid) => feed.stationOf(sid) === m.id);
+        if (j < 0 || j === t.stopIds.length - 1) continue; // arrivals only, not departures
+        const when = midnight + t.dep[j] * 1000;
+        departures++; if (when >= now) remaining++;
+        perHour[hourOf(when)]++;
+        const lineName = (m.operator === 'amtrak' ? route.longName || route.shortName : route.longName || route.shortName) || 'Other';
+        const lk = `${m.operator}|${lineName}`;
+        const l = lines.get(lk) ?? { operator: m.operator, name: lineName, color: `#${route.color || '9aa5b1'}`, count: 0 }; l.count++; lines.set(lk, l);
+        const destId = feed.stationOf(t.stopIds[t.stopIds.length - 1]);
+        const destName = tidyName(feed.stops.get(destId)?.name ?? destId);
+        const dk = `${m.operator}|${destName}`;
+        const d = dests.get(dk) ?? { name: destName, operator: m.operator, count: 0 }; d.count++; dests.set(dk, d);
+        for (const sid of t.stopIds.slice(j + 1)) served.add(this.stations.hub(`${m.operator}:${feed.stationOf(sid)}`)?.id ?? `${m.operator}:${feed.stationOf(sid)}`);
+      }
+    }
+    // live status: departures in the next hour that are running late or cancelled
+    const board = this.board(hubId)!;
+    const soon = board.rows.filter((r) => r.kind === 'departure' && r.source === 'live' && (r.estimated ?? r.scheduled) >= now && r.scheduled <= now + 3600_000);
+    const late = soon.filter((r) => r.status === 'Cancelled' || (r.delaySec ?? 0) > onTimeThresholdSec(r.operator));
+    const status = !soon.length ? { level: 'unknown', text: 'No live trains in the next hour' }
+      : late.length === 0 ? { level: 'ok', text: 'Running on time' }
+      : late.length / soon.length < 0.25 ? { level: 'minor', text: 'Minor delays' } : { level: 'major', text: 'Major delays' };
+    const byCount = <T extends { count: number }>(a: T[]) => a.sort((x, y) => y.count - x.count);
+    return { hub: { id: hub.id, name: hub.name, operators: hub.operators, code: hub.members.find((m) => m.operator === 'amtrak')?.id ?? null },
+      serviceDate: date, serverTime: now, departures, remaining, perHour,
+      busiestHour: departures ? perHour.indexOf(Math.max(...perHour)) : null,
+      lines: byCount([...lines.values()]), destinations: byCount([...dests.values()]).slice(0, 8), stationsServed: served.size,
+      status: { ...status, liveSoon: soon.length, lateSoon: late.length } };
+  }
+
+  private tripsAt(op: string, stationId: string): number[] {
     const feed = this.feeds.get(op)!;
     if (!this.stationTrips.has(op)) {
       const list = [...feed.trips.values()]; this.tripLists.set(op, list);
@@ -242,8 +291,15 @@ export class Engine {
       list.forEach((t, i) => { for (const s of t!.stopIds) { const k = feed.stationOf(s); const l = idx.get(k) ?? []; l.push(i); idx.set(k, l); } });
       this.stationTrips.set(op, idx);
     }
+    return this.stationTrips.get(op)!.get(stationId) ?? [];
+  }
+
+  private stationTrips = new Map<string, Map<string, number[]>>(); // operator -> station -> trip indexes
+  private tripLists = new Map<string, ReturnType<GtfsFeed['trips']['get']>[]>();
+  private scheduledAt(sched: ScheduleAdapter, op: string, stationId: string, date: string, midnight: number, now: number): RawTrain[] {
+    const feed = this.feeds.get(op)!;
     const out: RawTrain[] = [];
-    for (const i of this.stationTrips.get(op)!.get(stationId) ?? []) {
+    for (const i of this.tripsAt(op, stationId)) {
       const t = this.tripLists.get(op)![i]!;
       if (feed.routes.get(t.routeId)?.type !== 2 || !feed.runsOn(t.serviceId, date)) continue;
       const j = t.stopIds.findIndex((s) => feed.stationOf(s) === stationId);

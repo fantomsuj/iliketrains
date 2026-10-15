@@ -34,6 +34,14 @@ test('demo replay positions trains from every feed on their routes', { skip: !ha
   // a station board for New York Penn lists trains from three operators
   const board = engine.board('amtrak:NYP')!;
   assert.deepEqual(new Set(board.rows.map((r) => r.operator)), new Set(['amtrak', 'njt', 'lirr']));
+  // station stats for New York Penn: today's timetabled departures, split by line, adding up
+  const st = engine.stationStats('amtrak:NYP')!;
+  assert.ok(st.departures > 100, `${st.departures} departures`);
+  assert.equal(st.lines.reduce((a, l) => a + l.count, 0), st.departures);
+  assert.equal(st.perHour.reduce((a: number, n: number) => a + n, 0), st.departures);
+  assert.deepEqual(new Set(st.lines.map((l) => l.operator)), new Set(['amtrak', 'njt', 'lirr']));
+  assert.ok(st.destinations[0].count >= st.destinations[st.destinations.length - 1].count);
+  assert.ok(['ok', 'minor', 'major', 'unknown'].includes(st.status.level));
   // search finds a train by its exact number
   const someNumber = snap.trains.find((t) => t.operator === 'lirr')!.trainNumber;
   assert.ok(engine.search(someNumber).trains.some((t) => t.trainNumber === someNumber));

@@ -74,6 +74,10 @@ const server = http.createServer((req, res) => {
       const t = engine.train(decodeURIComponent(m[1]));
       return t ? sendJson(res, 200, t) : sendJson(res, 404, { error: 'unknown train' });
     }
+    if ((m = /^\/api\/stations\/(.+)\/stats$/.exec(p))) {
+      const st = engine.stationStats(decodeURIComponent(m[1]));
+      return st ? sendJson(res, 200, st) : sendJson(res, 404, { error: 'unknown station' });
+    }
     if ((m = /^\/api\/stations\/(.+)\/board$/.exec(p))) {
       const b = engine.board(decodeURIComponent(m[1]));
       return b ? sendJson(res, 200, b) : sendJson(res, 404, { error: 'unknown station' });
