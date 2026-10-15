@@ -4,6 +4,7 @@ import type { GtfsFeed } from '../gtfs.ts';
 import { type RouteIndex, type PatternRecord, orderedCoverage } from '../routes.ts';
 import type { MotionPlan, PlanStop, RawStop, RawTrain, TrainState, TrainStop } from '../model.ts';
 import { distanceAt } from '../motion.ts';
+import { tidyName } from './stations.ts';
 import { MAX_POSITION_AGE_MS } from '../adapters/gtfsrt.ts';
 
 const MAX_SNAP_OFFSET_M = 1000;   // a reported position farther than this from the route is not trusted
@@ -78,7 +79,7 @@ export class Positioner {
     const line = pattern ? this.routes.line(pattern.shape) : undefined;
     const t = (s: RawStop, k: 'arr' | 'dep') => (k === 'arr' ? s.estArr ?? s.schArr ?? s.estDep ?? s.schDep : s.estDep ?? s.schDep ?? s.estArr ?? s.schArr) ?? null;
     const first = raw.stops[0], last = raw.stops[raw.stops.length - 1];
-    const origin = first?.name ?? first?.stationId ?? '', destination = raw.headsign || last?.name || '';
+    const origin = tidyName(first?.name ?? first?.stationId ?? ''), destination = tidyName(raw.headsign || last?.name || '');
 
     const base = {
       id: `${raw.operator}:${raw.tripId}`, operator: raw.operator, tripId: raw.tripId, trainNumber: raw.trainNumber,
@@ -89,7 +90,7 @@ export class Positioner {
     const dists = line ? this.stopDistances(raw, line, pattern) : raw.stops.map(() => null);
     const stops: TrainStop[] = raw.stops.map((s, i) => ({
       stationId: s.stationId, hubId: this.stations.hubOf(raw.operator, s.stationId),
-      name: s.name ?? this.stations.name(raw.operator, s.stationId), d: Math.round(dists[i] ?? -1),
+      name: tidyName(s.name ?? this.stations.name(raw.operator, s.stationId)), d: Math.round(dists[i] ?? -1),
       schArr: s.schArr ?? null, schDep: s.schDep ?? null, estArr: s.estArr ?? null, estDep: s.estDep ?? null,
       status: s.skipped ? 'skipped' : s.departed ? 'departed' : 'upcoming', track: s.track,
     }));

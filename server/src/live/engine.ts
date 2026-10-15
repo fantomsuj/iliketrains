@@ -10,7 +10,7 @@ import { GtfsRtAdapter, njtSource, urlSource } from '../adapters/gtfsrt.ts';
 import { ScheduleAdapter } from '../adapters/schedule.ts';
 import { type Clock, type Fetcher, LiveFetcher, ReplayFetcher, realClock } from './fetcher.ts';
 import { Positioner } from './positioner.ts';
-import { StationIndex } from './stations.ts';
+import { StationIndex, tidyName } from './stations.ts';
 import { EventLog, lateness, trainLabel } from './events.ts';
 
 export type Broadcast = (msg: { type: string; [k: string]: unknown }) => void;
@@ -18,6 +18,7 @@ export type Broadcast = (msg: { type: string; [k: string]: unknown }) => void;
 interface AdapterHealth { id: string; label: string; enabled: boolean; note?: string; lastOk: number | null; lastError: string | null; trains: number }
 
 const BOARD_PAST_MS = 20 * 60_000, BOARD_AHEAD_MS = 3 * 3600_000;
+const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function summary(t: TrainState): TrainSummary {
   const { stops: _s, ...rest } = t;
@@ -162,7 +163,7 @@ export class Engine {
         liveKeys.add(`${t.operator}:${t.trainNumber}`);
         const delay = est !== null ? Math.round((est - sch) / 1000) : t.delaySec;
         const status = t.status === 'cancelled' ? 'Cancelled' : s.status === 'skipped' ? 'Skips stop' : s.status === 'departed' ? (isLast ? 'Arrived' : 'Departed')
-          : t.status === 'atStation' && t.next?.stationId === s.stationId ? 'Boarding' : t.source === 'scheduled' ? 'Scheduled' : lateness(delay) || 'Expected';
+          : t.status === 'atStation' && t.next?.stationId === s.stationId ? 'Boarding' : t.source === 'scheduled' ? 'Scheduled' : capitalise(lateness(delay)) || 'Expected';
         rows.push({ trainId: t.id, operator: t.operator, trainNumber: t.trainNumber, label: trainLabel(t), routeName: t.routeName, color: t.color,
           origin: t.origin, destination: t.destination, kind: isLast ? 'arrival' : 'departure', scheduled: sch, estimated: est,
           delaySec: delay, status, track: s.track ?? null, source: t.source, fix: t.fix });
@@ -179,7 +180,7 @@ export class Engine {
           const s = raw.stops[idx]; const isLast = idx === raw.stops.length - 1;
           const sch = (isLast ? s.schArr : s.schDep)!;
           rows.push({ trainId: null, operator: raw.operator, trainNumber: raw.trainNumber, label: trainLabel(raw), routeName: raw.routeName,
-            color: raw.color ?? '#9aa5b1', origin: raw.stops[0].name ?? '', destination: raw.headsign ?? '', kind: isLast ? 'arrival' : 'departure',
+            color: raw.color ?? '#9aa5b1', origin: tidyName(raw.stops[0].name ?? ''), destination: tidyName(raw.headsign ?? ''), kind: isLast ? 'arrival' : 'departure',
             scheduled: sch, estimated: null, delaySec: null, status: sch < now ? 'Departed' : 'Scheduled', track: null, source: 'scheduled', fix: 'timetable' });
           liveKeys.add(`${raw.operator}:${raw.trainNumber}`);
         }

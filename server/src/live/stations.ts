@@ -40,7 +40,7 @@ export class StationIndex {
         const s = feed.stops.get(id);
         if (!s || !inRegion(s.lonlat)) continue;
         entries.push({ key: `${op}:${id}`, operator: op, id, name: s.name, lonlat: s.lonlat });
-        this.names.set(`${op}:${id}`, s.name);
+        this.names.set(`${op}:${id}`, tidyName(s.name));
       }
     }
     // Greedy clustering in operator priority order: a station joins the first hub that is close
@@ -49,10 +49,12 @@ export class StationIndex {
       let joined: Hub | undefined;
       for (const h of this.hubs.values()) {
         const dist = haversine(h.lonlat, e.lonlat);
-        if (dist > HUB_RADIUS_M || h.operators.includes(e.operator)) continue;
-        if (dist < 120 || h.members.some((m) => nameOverlap(m.name, e.name))) { joined = h; break; }
+        if (dist > HUB_RADIUS_M) continue;
+        const sameName = h.members.some((m) => nameOverlap(m.name, e.name));
+        // the same operator's platforms join only when clearly one station (Secaucus upper/lower level)
+        if (h.operators.includes(e.operator) ? sameName && dist < 200 : dist < 120 || sameName) { joined = h; break; }
       }
-      if (joined) { joined.members.push(e); joined.operators.push(e.operator); }
+      if (joined) { joined.members.push(e); if (!joined.operators.includes(e.operator)) joined.operators.push(e.operator); }
       else { joined = { id: e.key, name: e.name, lonlat: e.lonlat, members: [e], operators: [e.operator] }; this.hubs.set(e.key, joined); }
       this.hubByKey.set(e.key, joined.id);
     }
@@ -73,15 +75,29 @@ export class StationIndex {
     if (!n) return [];
     const scored = this.list().map((s) => {
       const name = normaliseName(s.name);
-      const score = s.code?.toLowerCase() === q.toLowerCase() ? 0 : name.startsWith(n) ? 1 : name.includes(n) ? 2 : 9;
+      const wordStart = name.startsWith(n) || name.includes(' ' + n);
+      const score = s.code?.toLowerCase() === q.toLowerCase() ? 0 : wordStart ? 1 : name.includes(n) ? 2 : 9;
       return { s, score };
     }).filter((x) => x.score < 9).sort((a, b) => a.score - b.score || b.s.operators.length - a.s.operators.length);
     return scored.slice(0, limit).map((x) => x.s);
   }
 }
 
-/** Shortest sensible member name, preferring Amtrak's naming for shared stations. */
+/** Title-case names published in capitals ("SECAUCUS UPPER LEVEL" -> "Secaucus Upper Level"). */
+export function tidyName(n: string): string {
+  let s = n.replace(/\s+/g, ' ').trim();
+  if (s === s.toUpperCase()) {
+    s = s.toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase()).replace(/\bSt\b\.?/g, 'St.')
+      .replace(/\b(Ny|Nj|Phl|Jfk|Ewr|Msu|Njt|Pa)\b/g, (w) => w.toUpperCase());
+  }
+  return s.replace(/\s+(Amtrak )?(Rail )?Station$/i, '').replace(/\s+(Upper|Lower) Level$/i, '');
+}
+
+/**
+ * Hub name: in operator priority order, the first tidy name that is specific (two or more words)
+ * but short enough for a board header; otherwise the first operator's name.
+ */
 function displayName(h: Hub): string {
-  const names = h.members.map((m) => m.name.replace(/\s+(Amtrak )?Station$/i, '').replace(/\s+/g, ' ').trim());
-  return names.sort((a, b) => a.length - b.length)[0] ?? h.id;
+  const names = h.members.map((m) => tidyName(m.name));
+  return names.find((n) => n.split(' ').length >= 2 && n.length <= 24) ?? names[0] ?? h.id;
 }

@@ -63,11 +63,15 @@ export class AmtrakerAdapter implements FeedAdapter {
       }) || inRegion([t.lon, t.lat]);
       if (!touchesRegion) continue;
 
-      const stops: RawStop[] = stations.map((s) => ({
-        stationId: s.code, name: s.name,
-        schArr: ms(s.schArr), schDep: ms(s.schDep), estArr: ms(s.arr), estDep: ms(s.dep),
-        departed: s.status === 'Departed', track: s.platform || undefined,
-      }));
+      const stops: RawStop[] = stations.map((s) => {
+        const departed = s.status === 'Departed';
+        let estDep = ms(s.dep);
+        const schDep = ms(s.schDep);
+        // Amtraker predicts departure = arrival for stops ahead, ignoring scheduled dwell
+        // (e.g. 13 min at New York for the engine change). Amtrak doesn't leave early, so clamp.
+        if (!departed && estDep !== undefined && schDep !== undefined) estDep = Math.max(estDep, schDep);
+        return { stationId: s.code, name: s.name, schArr: ms(s.schArr), schDep, estArr: ms(s.arr), estDep, departed, track: s.platform || undefined };
+      });
       const next = stations.findIndex((s) => s.status !== 'Departed');
       const ref = next >= 0 ? stops[next] : stops[stops.length - 1];
       const sch = ref?.schArr ?? ref?.schDep, est = ref?.estArr ?? ref?.estDep;
