@@ -28,7 +28,7 @@
   .status { font-size:15px; font-weight:600; }
   .ontime { color:var(--ontime) } .late { color:var(--late) } .bad { color:var(--bad) } .sched { color:var(--sched) }
   .ends { display:flex; justify-content:space-between; margin-top:14px; }
-  .ends .code { font-size:24px; font-weight:700; } .ends .t { color:var(--dim); font-variant-numeric: tabular-nums; }
+  .ends .code { font-size:22px; font-weight:700; max-width:130px; } .ends .t { color:var(--dim); font-variant-numeric: tabular-nums; }
   .bar { position:relative; height:4px; background:#2a3440; border-radius:2px; margin:10px 0 4px; }
   .bar i { position:absolute; left:0; top:0; bottom:0; border-radius:2px; background:var(--ontime); }
   .bar em { position:absolute; top:-5px; width:14px; height:14px; margin-left:-7px; border-radius:50%; background:var(--text); box-shadow:0 0 10px #fff8; }
@@ -39,6 +39,22 @@
   .tag { font-size:10px; padding:2px 6px; border-radius:6px; border:1px solid var(--line); color:var(--dim); margin-left:6px; }
   .x { float:right; cursor:pointer; color:var(--dim); font-size:18px; }
   .raw { margin-top:16px; font-size:12px; } .raw a { color:var(--dim); }
+  h4 { margin:18px 0 6px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .eq-name { font-size:16px; font-weight:600; } .eq-sub { color:var(--dim); font-size:12px; margin-top:2px; }
+  .cars { display:flex; gap:3px; margin-top:10px; overflow-x:auto; padding-bottom:16px; }
+  .car { flex:0 0 auto; width:30px; height:22px; border-radius:5px; position:relative; display:flex; align-items:center; justify-content:center; font-size:10px; color:#0d1117; font-weight:700; }
+  .car.loco { width:36px; border-radius:11px 5px 5px 11px; background:#c9d1d9 !important; }
+  .car.loco.rear { border-radius:5px 11px 11px 5px; }
+  .car span { position:absolute; top:25px; color:var(--dim); font-weight:500; white-space:nowrap; font-size:8px; font-variant-numeric:tabular-nums; }
+  .cars-legend { display:flex; gap:10px; font-size:11px; color:var(--dim); flex-wrap:wrap; }
+  .cars-legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
+  .hist-stats { display:flex; gap:18px; margin-top:4px; } .hist-stats b { display:block; font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; } .hist-stats small { color:var(--dim); font-size:11px; }
+  .days { display:flex; gap:4px; margin-top:12px; align-items:flex-end; height:46px; }
+  .day { flex:1; border-radius:3px; min-height:6px; cursor:pointer; }
+  .day.flagged { background:repeating-linear-gradient(135deg, #3a4654 0 3px, transparent 3px 6px) !important; border:1px solid #3a4654; }
+  .day.none { background:#1c2530 !important; height:6px !important; }
+  .day-labels { display:flex; justify-content:space-between; color:var(--dim); font-size:10px; margin-top:4px; }
+  #daydetail { margin-top:8px; font-size:12px; color:var(--dim); min-height:16px; line-height:1.5; } #daydetail a { color:var(--dim); }
 </style>
 </head>
 <body>
@@ -172,10 +188,12 @@ const hm = (ms) => ms == null ? '' : new Date(ms).toLocaleTimeString([], { hour:
 const late = (sec) => sec == null ? '' : Math.abs(sec) < 90 ? 'On time' : sec > 0 ? `${Math.round(sec / 60)} min late` : `${Math.round(-sec / 60)} min early`;
 async function openTrain(id) {
   const t = await fetch('/api/trains/' + encodeURIComponent(id)).then((r) => r.json());
-  selected = { type: 'train', id, data: t }; renderTrain(t); panel.style.display = 'block';
+  selected = { type: 'train', id, data: t }; renderTrain(t); panel.style.display = 'block'; loadHistory(t);
   const l = lines.get(t.shape); if (l) map.easeTo({ center: [t.lon, t.lat], zoom: Math.max(map.getZoom(), 10), duration: 900 });
 }
-async function refreshPanel() { if (selected?.type === 'train') { const t = await fetch('/api/trains/' + encodeURIComponent(selected.id)).then((r) => r.ok ? r.json() : null); if (t) { selected.data = t; renderTrain(t); } } }
+async function refreshPanel() { if (selected?.type === 'train') { const t = await fetch('/api/trains/' + encodeURIComponent(selected.id)).then((r) => r.ok ? r.json() : null); if (t) { selected.data = t; renderTrain(t); loadHistory(t); } } }
+// Amtrak's three-letter codes read well; other railroads' ids are numbers, so use a short name
+const endName = (t, s) => t.operator === 'amtrak' ? s.stationId : (s.name.length > 14 ? s.name.split(/[ -]/)[0] : s.name);
 function renderTrain(t) {
   const cls = lateClass(t), first = t.stops[0], lastS = t.stops[t.stops.length - 1];
   const eta = t.next?.eta ? Math.max(0, Math.round((t.next.eta - now()) / 60000)) : null;
@@ -184,14 +202,66 @@ function renderTrain(t) {
     <div class="big">${esc(t.trainNumber)} <span style="font-size:16px;font-weight:500;color:var(--dim)">to ${esc(t.destination)}</span></div>
     <div class="status ${cls}">${t.status === 'cancelled' ? 'Cancelled' : t.source === 'scheduled' ? 'Scheduled (no live data)' : late(t.delaySec) || 'Tracking'}
       <span class="tag">${t.fix === 'gps' ? 'GPS' : t.fix === 'predicted' ? 'Live times' : 'Timetable'}</span></div>
-    <div class="ends"><div><div class="code">${esc(first.stationId)}</div><div class="t">${hm(first.estDep ?? first.schDep)}</div></div>
+    <div class="ends"><div><div class="code">${esc(endName(t, first))}</div><div class="t">${hm(first.estDep ?? first.schDep)}</div></div>
       <div style="text-align:center;color:var(--dim);padding-top:6px" id="etaline">${t.next ? `${esc(t.next.name)} in <b style="color:var(--text)">${eta ?? '?'} min</b>` : ''}</div>
-      <div style="text-align:right"><div class="code">${esc(lastS.stationId)}</div><div class="t">${hm(lastS.estArr ?? lastS.schArr)}</div></div></div>
+      <div style="text-align:right"><div class="code">${esc(endName(t, lastS))}</div><div class="t">${hm(lastS.estArr ?? lastS.schArr)}</div></div></div>
     <div class="bar"><i id="pbar" style="width:${(t.progress * 100).toFixed(1)}%;background:${STATUS_COLOR[cls]}"></i><em id="pdot" style="left:${(t.progress * 100).toFixed(1)}%"></em></div>
+    <h4>Equipment</h4><div id="equipment">${equipmentHtml(t)}</div>
+    <h4>Last 14 days</h4><div id="history"><div style="color:var(--dim)">Loading history…</div></div>
+    <h4>Stops</h4>
     <table>${t.stops.map((s) => `<tr class="${s.status === 'departed' ? 'past' : ''}"><td>${esc(s.name)}${s.track ? `<span class="tag">Trk ${esc(s.track)}</span>` : ''}${s.status === 'skipped' ? '<span class="tag">skipped</span>' : ''}</td>
       <td class="time">${s.schArr != null && s.estArr != null && Math.abs(s.estArr - s.schArr) > 90000 ? `<s style="color:var(--dim)">${hm(s.schArr)}</s> ` : ''}<span class="${s.status === 'departed' ? '' : cls}">${hm(s.estArr ?? s.schArr)}</span></td></tr>`).join('')}</table>
     <div class="raw"><a href="/api/trains/${encodeURIComponent(t.id)}" target="_blank">Raw record</a></div>`;
 }
+// ---- equipment (live consist for LIRR / Metro-North, typical for Amtrak) ----
+const LOAD = { EMPTY: ['#3fb950', 'Plenty of seats'], MANY_SEATS: ['#3fb950', 'Many seats'], FEW_SEATS: ['#f0a33a', 'Few seats'], STANDING_ROOM_ONLY: ['#f85149', 'Standing room'], FULL: ['#f85149', 'Full'], NO_DATA: ['#3a4654', 'No sensor'] };
+function equipmentHtml(t) {
+  const e = t.equipment;
+  if (!e) return '<div style="color:var(--dim)">Not reported for this train yet.</div>';
+  if (!e.live) return `<div class="eq-name">${t.operator === 'amtrak' ? 'Typically ' : ''}${esc(e.summary)}</div><div class="eq-sub">${esc(e.detail)}</div>
+    <div class="eq-sub" style="margin-top:6px">${t.operator === 'amtrak' ? "Amtrak doesn't publish which equipment runs each train. " : ''}<a href="${esc(e.source)}" target="_blank" style="color:var(--dim)">Source</a></div>`;
+  const diff = e.carsRunning && e.carsScheduled && e.carsRunning !== e.carsScheduled
+    ? ` · <span style="color:${e.carsRunning > e.carsScheduled ? 'var(--ontime)' : 'var(--late)'}">${e.carsRunning > e.carsScheduled ? `${e.carsRunning - e.carsScheduled} extra` : `${e.carsScheduled - e.carsRunning} short`}</span>` : '';
+  const counted = e.cars.some((c) => c.passengers != null), riders = e.cars.reduce((a, c) => a + (c.passengers ?? 0), 0);
+  const locos = e.cars.filter((c) => c.locomotive);
+  const cars = e.cars.map((c, i) => {
+    const [col, label] = LOAD[c.loading] ?? ['#3a4654', c.loading];
+    const rear = c.locomotive && i === e.cars.length - 1 && i > 0;
+    const tip = `${c.model} ${c.number ?? ''}${c.locomotive ? ' (locomotive)' : ` · ${label}${c.passengers != null ? `, ${c.passengers} aboard` : ''}`}${c.restroom ? ' · restroom' : ''}`;
+    return `<div class="car ${c.locomotive ? 'loco' : ''} ${rear ? 'rear' : ''}" style="background:${col}" title="${esc(tip)}">${c.restroom ? '·' : ''}<span>${c.number ?? ''}</span></div>`;
+  }).join('');
+  return `<div class="eq-name">${esc(e.name)}</div>
+    <div class="eq-sub">${e.carsRunning ?? e.cars.length} cars${e.carsScheduled ? ` (${e.carsScheduled} scheduled)` : ''}${diff}${locos.length ? ` · ${locos.map((l) => `${esc(l.model)} ${l.number ?? ''}`).join(' + ')}` : ''}${counted ? ` · ${riders} aboard` : ''}</div>
+    ${e.cars.length ? `<div class="cars">${cars}</div><div class="cars-legend"><span>front first</span><span><i style="background:#3fb950"></i>seats free</span><span><i style="background:#f0a33a"></i>few seats</span><span><i style="background:#f85149"></i>full</span><span><i style="background:#3a4654"></i>no sensor</span><span>· restroom</span></div>` : `<div class="eq-sub" style="margin-top:6px">The railroad didn't list the cars for this run.</div>`}
+    <div class="eq-sub" style="margin-top:6px">Live from the railroad · <a href="/api/trains/${encodeURIComponent(t.id)}/equipment/raw" target="_blank" style="color:var(--dim)">Raw record</a></div>`;
+}
+
+// ---- history (our own recording + the public Amtrak archive) ----
+async function loadHistory(t, retry = 0) {
+  const h = await fetch(`/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}`).then((r) => r.json());
+  const el = document.getElementById('history'); if (!el || selected?.id !== t.id) return;
+  const fmt = (m) => m == null ? '—' : Math.abs(m) <= 1 ? 'on time' : m > 0 ? `${m} min late` : `${-m} min early`;
+  const days = [...h.days].reverse();
+  const color = (d) => d.status === 'cancelled' ? '#f85149' : d.delayMin == null ? '#3a4654' : d.delayMin <= h.thresholdMin ? '#3fb950' : d.delayMin <= 15 ? '#f0a33a' : '#f85149';
+  const bars = days.map((d, i) => {
+    const none = d.status === 'unknown' || d.status === 'no_record' || (d.delayMin == null && d.status !== 'cancelled');
+    const ht = none ? 6 : d.status === 'cancelled' ? 46 : Math.max(12, Math.min(46, 16 + Math.max(0, d.delayMin) * 2));
+    return `<div class="day ${none ? 'none' : ''} ${!none && !d.scored ? 'flagged' : ''}" data-i="${i}" style="height:${ht}px;background:${color(d)}"></div>`;
+  }).join('');
+  el.innerHTML = `${h.scoredRuns ? `<div class="hist-stats"><div><b style="color:${h.onTimeRuns / h.scoredRuns >= 0.8 ? 'var(--ontime)' : 'var(--late)'}">${Math.round((h.onTimeRuns / h.scoredRuns) * 100)}%</b><small>on time (${h.onTimeRuns} of ${h.scoredRuns})</small></div>
+      <div><b>${fmt(h.avgDelayMin == null ? null : Math.round(h.avgDelayMin))}</b><small>average</small></div><div><b>${fmt(h.worstDelayMin)}</b><small>worst</small></div></div>`
+    : `<div style="color:var(--dim)">${h.backfilling ? 'Filling in past runs…' : 'No completed runs recorded yet.'}</div>`}
+    <div class="days">${bars}</div><div class="day-labels"><span>${days[0].date.slice(5)}</span><span>today</span></div>
+    <div id="daydetail">${h.note ? esc(h.note) + ' ' : ''}On time means within ${h.thresholdMin} min. Striped days aren't counted. Tap a day.</div>`;
+  el.querySelectorAll('.day').forEach((b) => b.addEventListener('click', () => {
+    const d = days[Number(b.dataset.i)];
+    const raw = `/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}/${d.date}/raw`;
+    document.getElementById('daydetail').innerHTML = `<b style="color:var(--text)">${d.date}</b> · ${d.status === 'no_record' ? 'did not run' : d.status === 'unknown' ? 'no record yet' : `${fmt(d.delayMin)}${d.measuredAt ? ` at ${esc(d.measuredAt)}` : ''}${d.status === 'running' ? ' (still running)' : ''}`}${d.flag && d.status !== 'no_record' ? ` · not counted: ${esc(d.flag)}` : ''}${d.consist ? `<br>${esc(d.consist)}` : ''}
+      ${d.source ? `<br><a href="${raw}" target="_blank">Raw record</a>${d.sourceUrl ? ` · <a href="${esc(d.sourceUrl)}" target="_blank">Open in archive</a>` : ''}` : ''}`;
+  }));
+  if (h.backfilling && retry < 6) setTimeout(() => loadHistory(t, retry + 1), 8000);
+}
+
 function tickPanel() {
   const t = selected.data, tr = trains.get(t.id); if (!tr || !tr.s.plan) return;
   const first = t.stops.find((s) => s.d >= 0), lastS = [...t.stops].reverse().find((s) => s.d >= 0); if (!first || !lastS) return;

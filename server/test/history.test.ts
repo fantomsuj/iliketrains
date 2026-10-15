@@ -24,13 +24,18 @@ test('archive day consistent with the timetable and its own times is scored', ()
   assert.match(r.source_url!, /asm\.transitdocs\.com\/train\/2026\/10\/08\/A\/2150$/);
 });
 
-test('archive day that gains an impossible amount of time en route is not scored', () => {
-  // Oct 14: left Washington on time, "13 min early" at Stamford on a schedule with no extra padding
-  const r = toRun('2150', '2026-10-14', asm('2026-10-14'), gtfs);
+test('archive day is scored unless it gains more time than the schedule could hold', () => {
+  // Oct 14: left Washington on time and was 13 min early at Stamford, 3 h 57 min later: within
+  // the allowance (10% = 24 min), so it counts. Pretend it were 30 min early: it would not.
+  const ok = toRun('2150', '2026-10-14', asm('2026-10-14'), gtfs);
   assert.equal(matchesTimetable(gtfs, '2150', '2026-10-14', asm('2026-10-14').stops), true);
-  assert.equal(r.delay_sec, -780);
-  assert.equal(r.scored, 0);
-  assert.match(r.flag!, /add up/);
+  assert.equal(ok.delay_sec, -780);
+  assert.equal(ok.scored, 1, String(ok.flag));
+  const rec = asm('2026-10-14');
+  for (const st of rec.stops) if (st.arrive) st.arrive.variance = Math.min(st.arrive.variance, -1800);
+  const bad = toRun('2150', '2026-10-14', rec, gtfs);
+  assert.equal(bad.scored, 0);
+  assert.match(bad.flag!, /add up/);
 });
 
 test('archive day whose schedule matches no published timetable for that date is not scored', () => {

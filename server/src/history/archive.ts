@@ -6,10 +6,15 @@ import type { RunRow } from './store.ts';
 const BASE = 'https://asm-backend.transitdocs.com/train';
 const SPACING_MS = 2500;
 /**
- * A train can make up a few minutes of schedule padding, not half an hour: a run that "gains"
- * more than this since leaving its origin was compared against the wrong times.
+ * How much time a train can plausibly make up between its origin and a stop: schedules carry
+ * padding roughly in proportion to their length (a long-distance train often arrives an hour
+ * early), so allow 10 min or 10% of the scheduled running time, whichever is more. A run that
+ * "gains" more than that was compared against the wrong times.
  */
-const MAX_GAIN_S = 600;
+export function allowedGainS(origin: AsmStop | undefined, at: AsmStop | undefined): number {
+  const from = origin?.sched_depart ?? origin?.sched_arrive, to = at?.sched_arrive ?? at?.sched_depart;
+  return Math.max(600, from && to ? 0.1 * (to - from) : 0);
+}
 
 interface AsmStop {
   code: string; sched_arrive?: number; sched_depart?: number; canceled?: boolean;
@@ -60,7 +65,7 @@ export function toRun(trainNumber: string, date: string, d: AsmTrain, gtfs: Gtfs
   if (d.stops.length && d.stops.every((s) => s.canceled)) flag = 'cancelled';
   else if (tt === false) flag = 'compared against a different timetable';
   else if (tt === null && delay !== null && delay < -600) flag = 'more than 10 min early: likely a different timetable';
-  else if (delay !== null && originDep !== null && delay < originDep - MAX_GAIN_S) flag = "times don't add up (gained too much time en route)";
+  else if (delay !== null && originDep !== null && delay < originDep - allowedGainS(d.stops[0], last)) flag = "times don't add up (gained too much time en route)";
   else if (delay === null) flag = 'no actual times recorded';
   const final = d.stops[d.stops.length - 1];
   return {
