@@ -53,6 +53,7 @@ On a device, set `TRAINS_SERVER_URL` in `ios/project.yml` (or the `serverURL` us
 | `NJT_BASE_URL` | `https://raildata.njtransit.com/api/GTFSRT` | NJ Transit developer API |
 | `TILES_URL` | this server | public URL of `trains.pmtiles` on the CDN |
 | `GLYPHS_URL` | Protomaps font CDN | label fonts for the map style |
+| `TRAINS_DATA_DIR` | `server/data/state` | run history database (`history.sqlite`) |
 | `ROUTES_FILE`, `TILES_FILE` | `server/data/derived/routes.json`, `tiles/dist/trains.pmtiles` | build outputs |
 
 ## API
@@ -139,6 +140,24 @@ for the next three hours across every railroad that serves it (New York Penn = A
 LIRR in one board). Time in big tabular digits coloured by punctuality, track when the feed gives one,
 live trains tappable into their card, timetable-only trains shown dimmer as "Scheduled".
 
+**Equipment** - Flighty's aircraft block (model and tail number), for a train. LIRR and Metro-North
+report their actual consist: the train's model, cars running vs. scheduled ("2 extra"), and a row of
+car tiles front to back with each car's number, coloured by how full it is (per-car passenger counts
+where the car has a sensor), locomotives as rounded end tiles. Amtrak publishes no equipment data, so
+the card says "Typically Avelia Liberty (NextGen Acela)" and links its source. Source:
+the backend of the MTA's TrainTime app (`backend-unified.mylirr.org`, header `Accept-Version: 3.0`),
+polled by the server every 20 s, never by phones. The same feed supplies posted track numbers.
+
+**Last 14 days** - Flighty's on-time history for a flight number: on-time rate (Amtrak within 10
+min, MTA/NJT within 5:59), average and worst delay, and one bar per day (taller = later, striped =
+shown but not counted, tap for the day's detail and its raw record). Every live run is recorded into
+`$TRAINS_DATA_DIR/history.sqlite` as it happens, with the consist that ran it. Past Amtrak days are
+filled from the ASM archive (`asm-backend.transitdocs.com`, one request every 2.5 s, cached). An
+archive day is not counted when its schedule matches no Amtrak timetable trip for that date, or when
+the train "gains" more than 10 min or 10% of its scheduled running time since its origin, which no
+real schedule padding allows. LIRR and Metro-North have no public archive: their history starts when
+the server starts recording.
+
 **Search** - Flighty's flight-number search: type a train number ("2153") or a station ("Penn",
 "NYP"); exact train-number matches first.
 
@@ -171,7 +190,8 @@ screens were only syntax-checked. Expect a short round of compile fixes on first
 ### Data gaps
 
 - **NJ Transit realtime** needs a developer account; until `NJT_*` is set NJ Transit is timetable-only, and the token flow is written to NJT's published API but untested.
-- **Track numbers**: MTA publishes them in a GTFS-RT extension the standard bindings don't decode; Amtraker's platform field is mostly empty. Boards show tracks only when present.
+- **Track numbers**: LIRR and Metro-North tracks come from the TrainTime backend (undocumented; could change without notice); Amtrak's platform field is mostly empty.
+- **Equipment**: live only for LIRR and Metro-North; Amtrak is "typical" by service; NJ Transit needs the developer key. Some runs report a car count but no car list.
 - **Amtrak GPS lag**: Amtraker positions are often 2-10 minutes old and sometimes contradict the stop statuses; those trains are dead-reckoned from the last fix.
 - **Amtrak timetable** published on Oct 14 starts on Oct 15, so today's Amtrak trains that Amtraker doesn't list yet are missing from station boards.
 - **Long Island positions**: about 10% of vehicle reports are over 30 minutes old and are ignored (the train is placed from stop predictions).
