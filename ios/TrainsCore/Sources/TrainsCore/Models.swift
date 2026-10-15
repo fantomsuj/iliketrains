@@ -109,6 +109,7 @@ public struct TrainDetail: Codable, Identifiable, Equatable, Sendable {
     public var progress: Double
     public var next: NextStop?
     public var stops: [TrainStop]
+    public var equipment: Equipment?
 }
 
 public struct LiveEvent: Codable, Identifiable, Equatable, Sendable {
@@ -198,4 +199,62 @@ public struct RouteOverview: Codable, Sendable {
     public struct Line: Codable, Sendable { public var key: String; public var `operator`: Operator; public var route: String; public var color: String; public var polyline: String }
     public var license: String
     public var routes: [Line]
+}
+
+/// One car of a live consist (LIRR / Metro-North), front first.
+public struct Car: Codable, Identifiable, Equatable, Sendable {
+    public var position: Int
+    public var number: Int?
+    public var type: String
+    public var model: String
+    public var locomotive: Bool
+    /// EMPTY, MANY_SEATS, FEW_SEATS, STANDING_ROOM_ONLY, FULL, or NO_DATA (no sensor)
+    public var loading: String
+    public var passengers: Int?
+    public var restroom: Bool
+    public var id: Int { position }
+}
+
+/// What a train is made of: the live consist when the railroad reports it, else the typical equipment.
+public struct Equipment: Codable, Equatable, Sendable {
+    public var live: Bool
+    // live consist
+    public var name: String?
+    public var carsRunning: Int?
+    public var carsScheduled: Int?
+    public var cars: [Car]?
+    public var observedAt: EpochMs?
+    // typical equipment (Amtrak) or "not published" (NJ Transit)
+    public var summary: String?
+    public var detail: String?
+    public var source: String?
+}
+
+public struct HistoryDay: Codable, Identifiable, Equatable, Sendable {
+    public var date: String
+    /// running, completed, cancelled, no_record (did not run), unknown (nothing recorded)
+    public var status: String
+    public var delayMin: Int?
+    public var measuredAt: String?
+    public var scored: Bool
+    public var flag: String?
+    public var source: String?
+    public var sourceUrl: String?
+    public var consist: String?
+    public var id: String { date }
+}
+
+/// GET /api/history/:operator/:number - the last 14 service days, newest first.
+public struct HistorySummary: Codable, Equatable, Sendable {
+    public var `operator`: Operator
+    public var trainNumber: String
+    public var days: [HistoryDay]
+    public var thresholdMin: Int
+    public var scoredRuns: Int
+    public var onTimeRuns: Int
+    public var onTimeRate: Double?
+    public var avgDelayMin: Double?
+    public var worstDelayMin: Int?
+    public var backfilling: Bool
+    public var note: String?
 }

@@ -58,4 +58,30 @@ public enum Wording {
     public static func trainLabel(operator op: Operator, routeName: String, number: String) -> String {
         op == .amtrak ? "\(routeName.isEmpty ? "Amtrak" : routeName) \(number)" : "\(op.displayName) \(number)"
     }
+
+    /// Seat availability for a car, in rider terms.
+    public static func loading(_ code: String) -> String {
+        switch code {
+        case "EMPTY": return "Plenty of seats"
+        case "MANY_SEATS": return "Many seats"
+        case "FEW_SEATS": return "Few seats"
+        case "STANDING_ROOM_ONLY": return "Standing room"
+        case "FULL": return "Full"
+        default: return "No sensor"
+        }
+    }
+
+    /// "4 min late" / "3 min early" / "on time" for a whole-minute delay.
+    public static func minutes(_ m: Int?) -> String {
+        guard let m else { return "—" }
+        if abs(m) <= 1 { return "on time" }
+        return m > 0 ? "\(m) min late" : "\(-m) min early"
+    }
+
+    /// "2 extra cars" / "1 car short" when the train runs a different length than scheduled.
+    public static func lengthNote(running: Int?, scheduled: Int?) -> String? {
+        guard let r = running, let s = scheduled, r != s else { return nil }
+        let n = abs(r - s)
+        return r > s ? "\(n) extra car\(n == 1 ? "" : "s")" : "\(n) car\(n == 1 ? "" : "s") short"
+    }
 }

@@ -24,6 +24,12 @@ struct API {
     func stations() async throws -> [StationSummary] { (try await get("/api/stations") as StationsResponse).stations }
     func routes() async throws -> RouteOverview { try await get("/api/routes") }
     func shape(_ key: String) async throws -> ShapeResponse { try await get("/api/shapes/" + Self.encode(key)) }
+    func history(_ op: Operator, _ number: String) async throws -> HistorySummary { try await get("/api/history/\(op.rawValue)/" + Self.encode(number)) }
+    /// Browser links for the raw records behind the equipment and a history day.
+    func rawEquipmentURL(_ trainId: String) -> URL { base.appendingPathComponent("api/trains").appendingPathComponent(trainId).appendingPathComponent("equipment/raw") }
+    func rawHistoryURL(_ op: Operator, _ number: String, _ date: String) -> URL {
+        base.appendingPathComponent("api/history/\(op.rawValue)").appendingPathComponent(number).appendingPathComponent("\(date)/raw")
+    }
     /// Raw JSON for the "view raw record" sheet.
     func rawTrain(_ id: String) async throws -> String {
         let (data, _) = try await URLSession.shared.data(from: base.appendingPathComponent("api/trains").appendingPathComponent(id))

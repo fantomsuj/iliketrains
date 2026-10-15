@@ -46,6 +46,11 @@ struct TrainCardView: View {
                     Tag(text: Wording.fixLabel(t.fix, source: t.source))
                 }
                 endpoints(t, punct: punct)
+                SectionHeader("Equipment")
+                EquipmentSection(train: t)
+                SectionHeader("Last 14 days")
+                HistorySection(train: t)
+                SectionHeader("Stops")
                 stopsList(t, punct: punct)
                 Button("View raw record") { showRaw = true }
                     .font(.footnote).foregroundStyle(Theme.dim).padding(.top, 4)
