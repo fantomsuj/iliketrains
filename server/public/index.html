@@ -263,6 +263,7 @@ function frame(t) {
     tr.fade = Math.min(1, (tr.fade ?? 1) + dt * 2);
     const lc = lateClass(s), alert = lc === 'late' || lc === 'bad';
     const icon = `train|${s.color}|${alert ? STATUS_COLOR[lc] : ''}|${s.source === 'scheduled' ? 's' : ''}`;
+    if (!map.hasImage(icon)) addTrainIcon(icon); // add before use, so new icons draw on the first frame
     feats.push({ type: 'Feature', properties: { id, color: s.color, status: STATUS_COLOR[lc], alert, scheduled: s.source === 'scheduled', opacity: tr.fade, label: s.trainNumber, icon, bearing: tr.bearing ?? s.bearing ?? 0 }, geometry: { type: 'Point', coordinates: coord } });
   }
   map.getSource('train-trails')?.setData({ type: 'FeatureCollection', features: trails });
