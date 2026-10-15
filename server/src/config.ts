@@ -7,6 +7,8 @@ const env = process.env;
 export const config = {
   root: ROOT,
   port: Number(env.PORT ?? 8787),
+  /** Interface to listen on; 127.0.0.1 behind a proxy, 0.0.0.0 to reach it from a phone on the LAN. */
+  host: env.HOST ?? '0.0.0.0',
   /** Replay recorded feed snapshots instead of polling (TRAINS_DEMO=1, optional TRAINS_DEMO_DIR). */
   demo: env.TRAINS_DEMO === '1' || env.TRAINS_DEMO === 'true',
   demoDir: env.TRAINS_DEMO_DIR ?? path.join(ROOT, 'data/demo/2026-10-14-evening'),

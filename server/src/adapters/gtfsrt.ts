@@ -73,7 +73,8 @@ export class GtfsRtAdapter implements FeedAdapter {
       if (!tu?.trip) continue;
       const tripId = tu.trip.tripId ?? e.id;
       const startDate = tu.trip.startDate || serviceDay(now).date;
-      const number = e.vehicle?.vehicle?.label || e.id || '';
+      // MNR identifies trains by number in the entity id; elsewhere the entity id is an opaque key
+      const number = e.vehicle?.vehicle?.label || (this.join === 'trainNumber' ? e.id ?? '' : '');
       const st = this.resolveTrip(tripId, number, startDate);
       const { midnight } = serviceDay(Date.UTC(+startDate.slice(0, 4), +startDate.slice(4, 6) - 1, +startDate.slice(6, 8), 16));
       const updates = tu.stopTimeUpdate ?? [];
@@ -117,7 +118,7 @@ export class GtfsRtAdapter implements FeedAdapter {
       const route = this.gtfs.routes.get(st?.routeId ?? tu.trip.routeId ?? '');
       out.push({
         tripId: st?.id ?? tripId, operator: this.id, route: route?.id ?? '', routeName: route?.longName || route?.shortName || '',
-        trainNumber: st?.shortName || st?.blockId || number || tripId, headsign: st?.headsign || stops[stops.length - 1].name,
+        trainNumber: st?.shortName || st?.blockId || number || 'Extra', // unscheduled extra train headsign: st?.headsign || stops[stops.length - 1].name,
         position, stops, delaySec: delay, source: 'live',
         updatedAt: Math.max(vAt, tu.timestamp ? Number(tu.timestamp) * 1000 : 0) || now,
         cancelled,

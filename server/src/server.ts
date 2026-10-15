@@ -104,7 +104,7 @@ const broadcast: Broadcast = (msg) => {
 engine.onBroadcast(broadcast);
 setInterval(() => { for (const r of sseClients) r.write(': keepalive\n\n'); }, 15000).unref();
 
-server.listen(config.port, () => {
-  console.log(`trains server on :${config.port} (${config.demo ? 'demo replay of ' + config.demoDir : 'live feeds'})`);
+server.listen(config.port, config.host, () => {
+  console.log(`trains server on ${config.host}:${config.port} (${config.demo ? 'demo replay of ' + config.demoDir : 'live feeds'})`);
   engine.start();
 });
