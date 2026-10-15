@@ -4,6 +4,9 @@ Flighty for trains: a live map of every passenger train in the US Northeast (Amt
 NJ Transit), moving smoothly along the actual track. Tap a train for its route, next stops and delay;
 tap a station for every train at it.
 
+Browser preview of the same data (the iPhone screens follow the same layout):
+`docs/screenshots/network-map.png`, `train-card.png`, `station-board.png`.
+
 ```
 ios/      SwiftUI + MapLibre Native app, plus TrainsCore (models, motion, geometry; tested on Linux too)
 server/   Node/TypeScript service: polls feeds, positions trains on track, pushes over WebSocket/SSE
