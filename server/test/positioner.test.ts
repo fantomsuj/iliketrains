@@ -76,3 +76,25 @@ test('a missing GPS report keeps the train gliding on its last fix', () => {
   assert.equal(b.fix, 'gps');
   assert.ok(Math.abs(b.plan!.d0 - distanceAt(a.plan!, T0 + 320_000)) < 1, 'continues from the previous plan, not the timetable');
 });
+
+test('the GPS report time carries through dead reckoning, and a stale report is dropped', () => {
+  const p = new Positioner(new RouteIndex(file), new Map(), stations);
+  const a = p.position(raw({ position: gps(4000, T0 + 240_000) }), T0 + 250_000);
+  assert.equal(a.gpsAt, T0 + 240_000);
+  // next updates carry no GPS: still reckoned from the same report, which keeps ageing
+  const b = p.position(raw(), T0 + 400_000, a);
+  assert.equal(b.fix, 'gps');
+  assert.equal(b.gpsAt, T0 + 240_000);
+  const c = p.position(raw(), T0 + 520_000, b);
+  assert.equal(c.fix, 'gps');
+  assert.equal(c.gpsAt, T0 + 240_000);
+  // past the 5-minute MTA limit (counted from the report, not from the last update) it falls back to stop times
+  const d = p.position(raw(), T0 + 560_000, c);
+  assert.equal(d.fix, 'predicted');
+  assert.equal(d.gpsAt, null);
+});
+
+test('without GPS the report time is null', () => {
+  const p = new Positioner(new RouteIndex(file), new Map(), stations);
+  assert.equal(p.position(raw(), T0 + 300_000).gpsAt, null);
+});

@@ -104,7 +104,7 @@ export class Positioner {
     // No route geometry: show the raw position (if any) and skip motion.
     if (!line) {
       const p = raw.position;
-      return { ...base, fix: p ? 'gps' : raw.source === 'live' ? 'predicted' : 'timetable', shape: null, distM: 0, lat: p?.lat ?? NaN, lon: p?.lon ?? NaN, bearing: 0, speedMps: p?.speedMps ?? 0,
+      return { ...base, fix: p ? 'gps' : raw.source === 'live' ? 'predicted' : 'timetable', gpsAt: p?.at ?? null, shape: null, distM: 0, lat: p?.lat ?? NaN, lon: p?.lon ?? NaN, bearing: 0, speedMps: p?.speedMps ?? 0,
         status, updatedAt: raw.updatedAt, plan: null, progress: 0, next, stops };
     }
 
@@ -133,19 +133,19 @@ export class Positioner {
       return d;
     };
 
-    let d0: number, t0: number, live = false;
+    let d0: number, t0: number, live = false, gpsAt: number | null = null;
     const p = raw.position;
     if (p && now - p.at < (MAX_POSITION_AGE_MS_BY_OPERATOR[raw.operator] ?? MAX_POSITION_AGE_MS) && departedOrigin) {
       const r = line.project([p.lon, p.lat], Math.max(0, lastDepartedD - 3000), nextD === line.length ? line.length : gpsWindowEnd);
       if (r.offset < MAX_SNAP_OFFSET_M) {
-        if (this.plausible(base.id, pattern!.shape, r.d, p.at, previous)) { d0 = r.d; t0 = p.at; live = true; }
-        else if (previous?.plan) { d0 = distanceAt(previous.plan, now); t0 = now; live = true; } // keep gliding on the last good fix
+        if (this.plausible(base.id, pattern!.shape, r.d, p.at, previous)) { d0 = r.d; t0 = p.at; live = true; gpsAt = p.at; }
+        else if (previous?.plan) { d0 = distanceAt(previous.plan, now); t0 = now; live = true; gpsAt = previous.gpsAt ?? null; } // keep gliding on the last good fix
       }
     }
     // GPS missing from this update but a recent fix exists: keep dead-reckoning on it
     const gpsMaxAge = MAX_POSITION_AGE_MS_BY_OPERATOR[raw.operator] ?? MAX_POSITION_AGE_MS;
-    if (!live && previous?.plan && previous.fix === 'gps' && previous.shape === pattern!.shape && now - previous.plan.t0 < gpsMaxAge) {
-      d0 = distanceAt(previous.plan, now); t0 = now; live = true;
+    if (!live && previous?.plan && previous.fix === 'gps' && previous.shape === pattern!.shape && now - (previous.gpsAt ?? previous.plan.t0) < gpsMaxAge) {
+      d0 = distanceAt(previous.plan, now); t0 = now; live = true; gpsAt = previous.gpsAt ?? null;
     }
     if (!live) { t0 = now; d0 = departedOrigin ? Math.min(Math.max(timeD(now), lastDepartedD), nextD) : (known[0]?.d ?? 0); }
     // never move a train backward on the server either (small regressions are feed noise)
@@ -186,7 +186,7 @@ export class Positioner {
     const dOrigin = known[0]?.d ?? 0, dDest = known[known.length - 1]?.d ?? line.length;
     const speed = (distanceAt(plan, now + 10_000) - dNow) / 10;
 
-    return { ...base, fix: live ? 'gps' : raw.source === 'live' ? 'predicted' : 'timetable',
+    return { ...base, fix: live ? 'gps' : raw.source === 'live' ? 'predicted' : 'timetable', gpsAt: live ? gpsAt : null,
       shape: pattern!.shape, distM: Math.round(dNow), lat: pt.lonlat[1], lon: pt.lonlat[0], bearing: Math.round(pt.bearing),
       speedMps: Math.round(speed * 10) / 10, status, updatedAt: live ? t0! : raw.updatedAt, plan,
       progress: dDest > dOrigin ? Math.min(1, Math.max(0, (dNow - dOrigin) / (dDest - dOrigin))) : 0, next, stops };

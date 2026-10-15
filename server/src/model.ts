@@ -72,6 +72,8 @@ export interface TrainState {
   source: Source;
   /** How the position was found: GPS report, live stop predictions, or the timetable alone. */
   fix: 'gps' | 'predicted' | 'timetable';
+  /** Time of the GPS report the position is reckoned from (epoch ms), or null when not placed by GPS. */
+  gpsAt: number | null;
   status: 'scheduled' | 'enroute' | 'atStation' | 'completed' | 'cancelled';
   updatedAt: number;
   plan: MotionPlan | null;

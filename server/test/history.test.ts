@@ -47,7 +47,7 @@ test('archive day whose schedule matches no published timetable for that date is
 
 function train(over: Partial<TrainState> = {}): TrainState {
   return { id: 'lirr:x', operator: 'lirr', tripId: 'x', serviceDate: '20261015', trainNumber: '1902', route: '', routeName: 'Babylon', headsign: '',
-    color: '#000', shape: null, distM: 0, lat: 0, lon: 0, bearing: 0, speedMps: 0, delaySec: 120, source: 'live', fix: 'gps', status: 'enroute',
+    color: '#000', shape: null, distM: 0, lat: 0, lon: 0, bearing: 0, speedMps: 0, delaySec: 120, source: 'live', fix: 'gps', gpsAt: null, status: 'enroute',
     updatedAt: 0, plan: null, origin: 'Penn', destination: 'Babylon', progress: 0.5, next: null,
     stops: [
       { stationId: 'A', hubId: 'A', name: 'Penn', d: 0, schArr: null, schDep: 1_000_000, estArr: null, estDep: 1_060_000, status: 'departed' },
