@@ -10,9 +10,10 @@
 // timetable-only. Distance since the report uses the server's default pace of 20 m/s.
 //
 // node build.mjs [--light]   writes position-source.html / position-source-light.html
+// (the dark build also writes server/public/figures/position-source.html, framed by the train card with ?embed)
 // Query string on the page: ?op=amtrak|mta|njt&age=<seconds>&fix=gps|predicted|timetable
 // pins the figure to one train's state (no tour).
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as k from "../../../../system/vendor/anatomy/kit/iso-kit.mjs";
@@ -324,13 +325,30 @@ let opIndex = 0, age = 0, targetAge = 0, glow = [1, 0, 0], pinLevel = [1, 0, 0];
 let shuttleX = LAMP_X[0], flashLevel = 0;
 const needleState = { at: 0, rate: 0 };
 
-// optional pin to one train: ?op=amtrak|mta|njt&age=<seconds>&fix=gps|predicted|timetable
-const params = new URLSearchParams(location.search);
-const pinned = params.has("op");
-if (pinned) {
-  opIndex = Math.max(0, OPERATORS.findIndex((o) => o.id === params.get("op")));
-  targetAge = age = needleState.at = clamp(Number(params.get("age") || 0) / 60, 0, SCALE_MIN);
+// pinned to one real train: ?op=amtrak|lirr|mnr|njt&fix=gps|predicted|timetable&gpsAt=<epoch ms> (or &age=<seconds>),
+// or a postMessage { type: "position-source", op, fix, gpsAt } from the page that frames it
+const OP_INDEX = { amtrak: 0, lirr: 1, mnr: 1, mta: 1, njt: 2 };
+const OP_NAME = { amtrak: "Amtrak", lirr: "LIRR", mnr: "Metro-North", njt: "NJ Transit" };
+const FIXES = ["gps", "predicted", "timetable"];
+let train = null;
+function trainAge() {
+  if (!train) return targetAge;
+  const op = OPERATORS[opIndex];
+  if (train.fix === "gps" && train.gpsAt) return clamp((Date.now() - train.gpsAt) / 60000, 0, SCALE_MIN);
+  if (train.fix === "gps") return 0;
+  return op.limit === null ? SCALE_MIN : SCALE_MIN;
 }
+function applyTrain(t) {
+  const fix = FIXES.includes(t.fix) ? t.fix : "timetable";
+  train = { op: t.op, fix, gpsAt: typeof t.gpsAt === "number" ? t.gpsAt : null };
+  opIndex = OP_INDEX[t.op] ?? 0;
+  touring = false; clearTimeout(idleTimer);
+  targetAge = trainAge();
+  describe(); run();
+}
+const params = new URLSearchParams(location.search);
+const embedded = params.has("embed");
+if (embedded) document.body.classList.add("ps-embed");
 
 // tour: each railroad's report ages past its limit, then a fresh report arrives
 const TOUR = [
@@ -339,7 +357,7 @@ const TOUR = [
   { op: 2, ramp: 4.5, to: SCALE_MIN },
   { op: 0, ramp: 0.01, to: 0, fix: true },
 ];
-let touring = !still.matches && !pinned, clock = 0, leg = 0, legFrom = 0;
+let touring = !still.matches, clock = 0, leg = 0, legFrom = 0;
 function tourStep(dt) {
   clock += dt;
   const step = TOUR[leg];
@@ -355,13 +373,14 @@ function newReport() { flashLevel = 1; targetAge = 0; }
 
 function shownSource() {
   const op = OPERATORS[opIndex];
-  if (pinned && params.has("fix")) return Math.max(0, ["gps", "predicted", "timetable"].indexOf(params.get("fix")));
+  if (train) return FIXES.indexOf(train.fix);
   return sourceOf(op, needleState.at);
 }
 
 let lastText = "";
 function draw() {
   const op = OPERATORS[opIndex];
+  const name = (train && OP_NAME[train.op]) || op.name;
   shuttle.setAttribute("transform", translateAlong(P, [shuttleX, 0, 0]));
   needle.setAttribute("d", needleAt(op.limit === null ? SCALE_MIN : needleState.at));
   glows.forEach((g, i) => (g.style.opacity = glow[i].toFixed(3)));
@@ -373,10 +392,11 @@ function draw() {
   const counter = src === 0 ? (miles < 10 ? "0" : "") + miles.toFixed(1) : "--.-";
   if (digits.textContent !== counter) digits.textContent = counter;
   let text;
-  if (op.limit === null) text = op.name + " · no live feed · timetable";
-  else if (src === 0) text = op.name + " · GPS " + minutes + " min old · +" + miles.toFixed(1) + " mi";
-  else if (src === 1) text = op.name + " · GPS over " + op.limit + " min · stop times";
-  else text = op.name + " · timetable";
+  if (op.limit === null) text = name + " · no live feed · timetable";
+  else if (src === 0) text = name + " · GPS " + minutes + " min old · +" + miles.toFixed(1) + " mi";
+  else if (src === 1 && train && !train.gpsAt) text = name + " · no recent GPS · stop times";
+  else if (src === 1) text = name + " · GPS over " + op.limit + " min · stop times";
+  else text = name + " · timetable";
   if (text !== lastText) { readout.textContent = text; lastText = text; }
 }
 
@@ -413,18 +433,19 @@ function tick(now) {
 const run = () => { if (!frame && visible) { last = 0; frame = requestAnimationFrame(tick); } };
 const hold = () => {
   touring = false; clearTimeout(idleTimer);
-  if (!pinned) idleTimer = setTimeout(() => { touring = !still.matches; clock = 0; leg = 0; legFrom = targetAge; run(); }, 3600);
+  idleTimer = setTimeout(() => { touring = !still.matches; clock = 0; leg = 0; legFrom = targetAge; run(); }, 3600);
   describe(); run();
 };
 new IntersectionObserver((entries) => { visible = entries[entries.length - 1].isIntersecting; if (visible) run(); }, { rootMargin: "120px 0px" }).observe(stage);
 stage.addEventListener("pointermove", (event) => {
-  if (event.pointerType === "touch") return;
+  if (train || event.pointerType === "touch") return;
   const box = svg.getBoundingClientRect();
   targetAge = clamp(((event.clientX - box.left) / box.width - 0.15) / 0.7, 0, 1) * SCALE_MIN;
   hold();
 });
-stage.addEventListener("click", () => { opIndex = (opIndex + 1) % OPERATORS.length; hold(); });
+stage.addEventListener("click", () => { if (train) return; opIndex = (opIndex + 1) % OPERATORS.length; hold(); });
 stage.addEventListener("keydown", (event) => {
+  if (train) return;
   const step = event.shiftKey ? 5 : 1;
   if (event.key === "ArrowRight" || event.key === "ArrowUp") targetAge = clamp(Math.round(targetAge) + step, 0, SCALE_MIN);
   else if (event.key === "ArrowLeft" || event.key === "ArrowDown") targetAge = clamp(Math.round(targetAge) - step, 0, SCALE_MIN);
@@ -439,6 +460,14 @@ glow = [0, 1, 2].map((i) => (i === shownSource() ? 1 : 0));
 pinLevel = [0, 1, 2].map((i) => (i === opIndex ? 1 : 0));
 shuttleX = LAMP_X[shownSource()];
 draw(); describe();
+if (params.has("op")) applyTrain({ op: params.get("op"), fix: params.get("fix") || "gps",
+  gpsAt: params.has("gpsAt") ? Number(params.get("gpsAt")) : params.has("age") ? Date.now() - Number(params.get("age")) * 1000 : null });
+addEventListener("message", (event) => { if (event.data && event.data.type === "position-source") applyTrain(event.data); });
+setInterval(() => { if (train) { targetAge = trainAge(); run(); } }, 5000);
+if (embedded) {
+  const report = () => parent.postMessage({ type: "position-source:height", height: document.documentElement.scrollHeight }, "*");
+  new ResizeObserver(report).observe(document.body); report();
+}
 window.__positionSource = { get op() { return opIndex; }, get shuttle() { return shuttleX; }, get age() { return needleState.at; } };
 `;
 
@@ -450,6 +479,15 @@ const css = `
 .ps-glow{fill:var(--anatomy-strong);opacity:.22;filter:blur(4px)}
 .ps-digits{fill:var(--anatomy-hi);font-family:ui-monospace,"SF Mono",Menlo,monospace;font-weight:600;letter-spacing:.2px}
 .iso-stage{cursor:pointer;touch-action:pan-y}
+body.ps-embed{background:transparent;--anatomy-page:transparent;--anatomy-card:#10151c;--anatomy-paper:#10151c}
+body.ps-embed .iso-page{width:100%;margin:0}
+body.ps-embed .iso-legend,body.ps-embed [data-corner="hint"],body.ps-embed [data-corner="fig"],body.ps-embed [data-corner="title"]{display:none}
+body.ps-embed .iso-stage{cursor:default}
+body.ps-embed .iso-figure{margin:0}
+body.ps-embed .iso-plate{padding:0 0 30px;box-shadow:none;overflow:hidden;border-radius:12px}
+body.ps-embed .iso-plate .iso-svg{width:110%;margin:-6% -5% -4%}
+body.ps-embed .iso-plate-corners{inset:auto 12px 11px 12px;height:12px}
+body.ps-embed .iso-plate-corner[data-corner="readout"]{font-size:11px;bottom:0}
 `;
 
 const body = k.plateHtml({
@@ -467,5 +505,13 @@ const body = k.plateHtml({
 });
 
 const name = theme === "light" ? "position-source-light.html" : "position-source.html";
-writeFileSync(join(HERE, name), k.pageHtml({ title: "Where is this train?", theme, body: `<style>${css}</style>${body}`, script: kitScript() + live }));
+const page = k.pageHtml({ title: "Where is this train?", theme, body: `<style>${css}</style>${body}`, script: kitScript() + live });
+writeFileSync(join(HERE, name), page);
 console.log("wrote", name);
+// the dark page is also what the map's train card frames (served from server/public)
+if (theme === "dark") {
+  const served = join(HERE, "../../server/public/figures");
+  mkdirSync(served, { recursive: true });
+  writeFileSync(join(served, "position-source.html"), page);
+  console.log("wrote server/public/figures/position-source.html");
+}

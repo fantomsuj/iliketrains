@@ -197,7 +197,27 @@ const endName = (t, s) => t.operator === 'amtrak' ? s.stationId : (s.name.length
 function renderTrain(t) {
   const cls = lateClass(t), first = t.stops[0], lastS = t.stops[t.stops.length - 1];
   const eta = t.next?.eta ? Math.max(0, Math.round((t.next.eta - now()) / 60000)) : null;
-  panel.innerHTML = `<span class="x" onclick="document.getElementById('panel').style.display='none'">×</span>
+  if (!document.getElementById('tp-fig')) {
+    panel.innerHTML = `<div id="tp-head"></div><div id="tp-fig"><h4>How it's placed on the map</h4><div id="tp-fig-slot"></div>
+      <div class="eq-sub">Lamps, left to right: GPS, live stop times, timetable. The dial is the age of the last GPS report; past the pin it is no longer trusted. The counter is how far the train is assumed to have moved since.</div></div><div id="tp-rest"></div>`;
+    document.getElementById('tp-fig-slot').appendChild(psFrame);
+  }
+  psSend({ type: 'position-source', op: t.operator, fix: t.fix, gpsAt: t.gpsAt ?? null });
+  const [head, rest] = trainHtml(t, cls, first, lastS, eta).split('<!--split-->');
+  document.getElementById('tp-head').innerHTML = head;
+  document.getElementById('tp-rest').innerHTML = rest;
+}
+// ---- how the train is placed (an explainer figure following the selected train) ----
+const psFrame = document.createElement('iframe');
+psFrame.src = '/figures/position-source.html?embed';
+psFrame.title = 'How this train is placed on the map';
+psFrame.style.cssText = 'width:100%;height:240px;border:0;display:block;border-radius:12px;background:#10151c';
+let psLoaded = false, psLast = null;
+psFrame.addEventListener('load', () => { psLoaded = true; if (psLast) psFrame.contentWindow.postMessage(psLast, '*'); });
+function psSend(msg) { psLast = msg; if (psLoaded && psFrame.isConnected) psFrame.contentWindow.postMessage(msg, '*'); }
+addEventListener('message', (e) => { if (e.source === psFrame.contentWindow && e.data?.type === 'position-source:height') psFrame.style.height = e.data.height + 'px'; });
+function trainHtml(t, cls, first, lastS, eta) {
+  return `<span class="x" onclick="document.getElementById('panel').style.display='none'">×</span>
     <div class="op">${esc(t.operator === 'amtrak' ? 'Amtrak' : t.operator.toUpperCase())} · ${esc(t.routeName)}</div>
     <div class="big">${esc(t.trainNumber)} <span style="font-size:16px;font-weight:500;color:var(--dim)">to ${esc(t.destination)}</span></div>
     <div class="status ${cls}">${t.status === 'cancelled' ? 'Cancelled' : t.source === 'scheduled' ? 'Scheduled (no live data)' : late(t.delaySec) || 'Tracking'}
@@ -205,7 +225,7 @@ function renderTrain(t) {
     <div class="ends"><div><div class="code">${esc(endName(t, first))}</div><div class="t">${hm(first.estDep ?? first.schDep)}</div></div>
       <div style="text-align:center;color:var(--dim);padding-top:6px" id="etaline">${t.next ? `${esc(t.next.name)} in <b style="color:var(--text)">${eta ?? '?'} min</b>` : ''}</div>
       <div style="text-align:right"><div class="code">${esc(endName(t, lastS))}</div><div class="t">${hm(lastS.estArr ?? lastS.schArr)}</div></div></div>
-    <div class="bar"><i id="pbar" style="width:${(t.progress * 100).toFixed(1)}%;background:${STATUS_COLOR[cls]}"></i><em id="pdot" style="left:${(t.progress * 100).toFixed(1)}%"></em></div>
+    <div class="bar"><i id="pbar" style="width:${(t.progress * 100).toFixed(1)}%;background:${STATUS_COLOR[cls]}"></i><em id="pdot" style="left:${(t.progress * 100).toFixed(1)}%"></em></div><!--split-->
     <h4>Equipment</h4><div id="equipment">${equipmentHtml(t)}</div>
     <h4>Last 14 days</h4><div id="history"><div style="color:var(--dim)">Loading history…</div></div>
     <h4>Stops</h4>
