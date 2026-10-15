@@ -28,7 +28,8 @@ export const config = {
   tilesUrl: env.TILES_URL ?? '',
   glyphsUrl: env.GLYPHS_URL ?? 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
   tilesFile: env.TILES_FILE ?? path.resolve(ROOT, '../tiles/dist/trains.pmtiles'),
-  styleFile: path.resolve(ROOT, '../tiles/style/trains-dark.json'),
+  styleFile: path.resolve(ROOT, '../tiles/style/trains-light.json'),
+  darkStyleFile: path.resolve(ROOT, '../tiles/style/trains-dark.json'),
   routesFile: env.ROUTES_FILE ?? path.join(ROOT, 'data/derived/routes.json'),
   /** Run history database and other state the server writes. */
   dataDir: env.TRAINS_DATA_DIR ?? path.join(ROOT, 'data/state'),

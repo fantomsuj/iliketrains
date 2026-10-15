@@ -6,71 +6,95 @@
 <title>Trains — live network preview</title>
 <link rel="stylesheet" href="/vendor/maplibre-gl/dist/maplibre-gl.css">
 <style>
-  :root { --bg:#0d1117; --panel:#151b23ee; --line:#232c37; --text:#e6edf3; --dim:#7d8a99; --ontime:#3fb950; --late:#f0a33a; --bad:#f85149; --sched:#7d8a99; }
-  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font: 14px/1.35 -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif; }
+  :root { --bg:#f3f1ec; --panel:#ffffff; --line:#ebebeb; --soft:#f6f6f4; --text:#111111; --dim:#8a8d93; --ontime:#2f9e44; --late:#e8890c; --bad:#e03131; --sched:#8a8d93;
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.12); --mono: "SF Mono", ui-monospace, Menlo, monospace; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font: 15px/1.4 -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
   #map { position:absolute; inset:0; }
-  .hud { position:absolute; top:14px; left:14px; display:flex; gap:10px; align-items:center; }
-  .pill { background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:7px 12px; backdrop-filter: blur(10px); }
+  .maplibregl-ctrl-attrib { background:rgba(255,255,255,.7) !important; font-size:10px; }
+
+  /* top-left controls */
+  .hud { position:absolute; top:16px; left:16px; display:flex; gap:10px; align-items:center; }
+  .pill { background:var(--panel); border-radius:999px; padding:10px 16px; box-shadow:var(--shadow); font-size:14px; }
   .pill b { font-variant-numeric: tabular-nums; }
-  .live-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--ontime); margin-right:6px; box-shadow:0 0 8px var(--ontime); animation: pulse 2s infinite; }
+  .live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--ontime); margin-right:8px; vertical-align:1px; animation: pulse 2s infinite; }
   @keyframes pulse { 50% { opacity:.35 } }
-  #search { background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:999px; padding:8px 14px; width:240px; outline:none; }
-  #results { position:absolute; top:52px; left:14px; width:320px; background:var(--panel); border:1px solid var(--line); border-radius:14px; display:none; overflow:hidden; }
-  #results div { padding:9px 14px; cursor:pointer; border-bottom:1px solid var(--line); }
-  #results div:hover { background:#1f2733; }
-  #ticker { position:absolute; left:0; right:0; bottom:0; height:34px; background:linear-gradient(transparent, #0d1117 40%); display:flex; align-items:center; overflow:hidden; font: 12px/1 "SF Mono", ui-monospace, monospace; color:var(--dim); }
+  #search { background:var(--panel); border:0; color:var(--text); border-radius:999px; padding:11px 18px; width:260px; outline:none; box-shadow:var(--shadow); font:inherit; font-size:14px; }
+  #search::placeholder { color:var(--dim); }
+  #results { position:absolute; top:62px; left:16px; width:340px; background:var(--panel); border-radius:20px; display:none; overflow:hidden; box-shadow:var(--shadow); }
+  #results div { padding:12px 18px; cursor:pointer; border-bottom:1px solid var(--line); }
+  #results div:last-child { border-bottom:0; }
+  #results div:hover { background:var(--soft); }
+
+  /* event ticker: quiet, along the bottom edge */
+  #ticker { position:absolute; left:0; right:0; bottom:0; height:30px; background:linear-gradient(transparent, rgba(243,241,236,.95) 45%); display:flex; align-items:center; overflow:hidden; font: 11px/1 var(--mono); color:var(--dim); }
   #ticker .track { white-space:nowrap; display:flex; gap:38px; padding-left:100%; animation: scroll linear infinite; }
-  #ticker .ev b { color:var(--text); font-weight:500; }
+  #ticker .ev b { color:#444; font-weight:500; }
   @keyframes scroll { to { transform: translateX(-100%); } }
-  #panel { position:absolute; right:14px; top:14px; bottom:48px; width:360px; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:18px; overflow:auto; display:none; backdrop-filter: blur(14px); }
-  .op { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); }
-  .big { font-size:30px; font-weight:700; letter-spacing:-.02em; }
-  .status { font-size:15px; font-weight:600; }
+
+  /* the card: a white sheet floating over the map */
+  #panel { position:absolute; right:16px; top:16px; bottom:40px; width:390px; box-sizing:border-box; background:var(--panel); border-radius:28px; padding:26px 26px 32px; overflow:auto; display:none; box-shadow:var(--shadow); scrollbar-width:thin; }
+  .x { position:sticky; top:0; float:right; width:40px; height:40px; margin:-6px -6px 0 8px; border-radius:50%; background:var(--panel); box-shadow:0 0 0 1px var(--line), 0 2px 8px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text); font-size:22px; font-weight:300; z-index:2; }
+  .chips { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .chip, .tag { font: 12px/1 var(--mono); padding:5px 8px; border:1px solid #e1e1e1; border-radius:7px; color:#6f7278; white-space:nowrap; background:var(--panel); }
+  .tag { margin-left:8px; font-size:11px; padding:3px 6px; vertical-align:2px; }
+  .op { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .big { font-size:30px; font-weight:700; letter-spacing:-.025em; line-height:1.15; margin:2px 0 2px; }
+  .status { font-size:16px; font-weight:600; margin-top:6px; }
   .ontime { color:var(--ontime) } .late { color:var(--late) } .bad { color:var(--bad) } .sched { color:var(--sched) }
-  .ends { display:flex; justify-content:space-between; margin-top:14px; }
-  .ends .code { font-size:22px; font-weight:700; max-width:130px; } .ends .t { color:var(--dim); font-variant-numeric: tabular-nums; }
-  .bar { position:relative; height:4px; background:#2a3440; border-radius:2px; margin:10px 0 4px; }
-  .bar i { position:absolute; left:0; top:0; bottom:0; border-radius:2px; background:var(--ontime); }
-  .bar em { position:absolute; top:-5px; width:14px; height:14px; margin-left:-7px; border-radius:50%; background:var(--text); box-shadow:0 0 10px #fff8; }
-  table { width:100%; border-collapse:collapse; margin-top:14px; font-variant-numeric: tabular-nums; }
-  td { padding:7px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .ends { display:flex; justify-content:space-between; gap:16px; margin-top:20px; }
+  .ends .code { font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; } .ends .t { color:var(--dim); font-variant-numeric: tabular-nums; }
+  .bar { position:relative; height:6px; background:#ececea; border-radius:3px; margin:12px 0 6px; }
+  .bar i { position:absolute; left:0; top:0; bottom:0; border-radius:3px; background:var(--ontime); }
+  .bar em { position:absolute; top:-5px; width:16px; height:16px; margin-left:-8px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px #d8d8d8, 0 2px 6px rgba(0,0,0,.18); }
+
+  /* section headings, Flighty style: bold title, quiet subtitle */
+  h4, .st-h { margin:30px 0 2px; font-size:21px; font-weight:700; letter-spacing:-.015em; text-transform:none; color:var(--text); }
+  .eq-sub, .st-sub { color:var(--dim); font-size:14px; margin-top:2px; }
+  .eq-name { font-size:17px; font-weight:600; }
+  hr.sep { border:0; border-top:1px solid var(--line); margin:22px -26px 0; }
+
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-variant-numeric: tabular-nums; }
+  td { padding:11px 2px; border-bottom:1px solid var(--line); vertical-align:top; }
   td.time { white-space:nowrap; text-align:right; }
   tr.past td { color:var(--dim); }
-  .tag { font-size:10px; padding:2px 6px; border-radius:6px; border:1px solid var(--line); color:var(--dim); margin-left:6px; }
-  .x { float:right; cursor:pointer; color:var(--dim); font-size:18px; }
-  .raw { margin-top:16px; font-size:12px; } .raw a { color:var(--dim); }
-  h4 { margin:18px 0 6px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); font-weight:600; }
-  .eq-name { font-size:16px; font-weight:600; } .eq-sub { color:var(--dim); font-size:12px; margin-top:2px; }
-  .cars { display:flex; gap:3px; margin-top:10px; overflow-x:auto; padding-bottom:16px; }
-  .car { flex:0 0 auto; width:30px; height:22px; border-radius:5px; position:relative; display:flex; align-items:center; justify-content:center; font-size:10px; color:#0d1117; font-weight:700; }
-  .car.loco { width:36px; border-radius:11px 5px 5px 11px; background:#c9d1d9 !important; }
-  .car.loco.rear { border-radius:5px 11px 11px 5px; }
+  tr[onclick]:hover td { background:var(--soft); }
+  .raw { margin-top:20px; font-size:12px; } .raw a { color:var(--dim); }
+
+  /* equipment */
+  .cars { display:flex; gap:3px; margin-top:12px; overflow-x:auto; padding-bottom:16px; }
+  .car { flex:0 0 auto; width:30px; height:22px; border-radius:6px; position:relative; display:flex; align-items:center; justify-content:center; font-size:10px; color:#fff; font-weight:700; }
+  .car.loco { width:36px; border-radius:11px 6px 6px 11px; background:#5f6368 !important; }
+  .car.loco.rear { border-radius:6px 11px 11px 6px; }
   .car span { position:absolute; top:25px; color:var(--dim); font-weight:500; white-space:nowrap; font-size:8px; font-variant-numeric:tabular-nums; }
-  .cars-legend { display:flex; gap:10px; font-size:11px; color:var(--dim); flex-wrap:wrap; }
-  .cars-legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
-  .hist-stats { display:flex; gap:18px; margin-top:4px; } .hist-stats b { display:block; font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; } .hist-stats small { color:var(--dim); font-size:11px; }
-  .days { display:flex; gap:4px; margin-top:12px; align-items:flex-end; height:46px; }
-  .day { flex:1; border-radius:3px; min-height:6px; cursor:pointer; }
-  .day.flagged { background:repeating-linear-gradient(135deg, #3a4654 0 3px, transparent 3px 6px) !important; border:1px solid #3a4654; }
-  .day.none { background:#1c2530 !important; height:6px !important; }
-  .day-labels { display:flex; justify-content:space-between; color:var(--dim); font-size:10px; margin-top:4px; }
-  .chips { display:flex; gap:6px; margin-bottom:8px; } .chip { font: 11px/1 "SF Mono", ui-monospace, monospace; padding:4px 7px; border:1px solid var(--line); border-radius:6px; color:var(--dim); white-space:nowrap; }
-  .st-status { display:flex; gap:14px; align-items:center; margin-top:16px; padding:14px; border:1px solid var(--line); border-radius:14px; background:#0d1117aa; }
-  .st-dot { flex:0 0 auto; width:10px; height:10px; border-radius:50%; margin:0 4px; }
-  .st-h { margin:22px 0 2px; font-size:17px; font-weight:700; letter-spacing:-.01em; }
-  .st-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px 12px; margin-top:12px; }
-  .st-grid b { display:block; font-size:26px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.1; }
-  .st-grid small { display:block; font-size:13px; } .st-grid i { display:block; font-style:normal; color:var(--dim); font-size:11px; margin-top:2px; }
-  .st-bar { display:flex; gap:3px; margin-top:10px; }
-  .st-bar > div { min-width:22px; display:flex; flex-direction:column; }
-  .st-pct { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; } .st-n { font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; margin-top:3px; }
-  .st-seg { height:16px; border-radius:3px; margin-top:3px; }
-  .st-legend { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:8px; font-size:11px; color:var(--dim); }
-  .st-legend i { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:5px; } .st-legend em { font-style:normal; opacity:.6; }
-  .st-dests > div { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
-  .st-dests .st-dn { flex:1; font-size:15px; } .st-dests b { font-variant-numeric:tabular-nums; } .st-dests small { color:var(--dim); font-size:10px; letter-spacing:.08em; text-transform:uppercase; width:42px; }
-  .trk { display:inline-block; background:#f5c542; color:#1a1400; font-weight:700; font-size:11px; padding:2px 6px; border-radius:5px; margin-right:8px; vertical-align:1px; }
-  #daydetail { margin-top:8px; font-size:12px; color:var(--dim); min-height:16px; line-height:1.5; } #daydetail a { color:var(--dim); }
+  .cars-legend { display:flex; gap:10px; font-size:12px; color:var(--dim); flex-wrap:wrap; }
+  .cars-legend i { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+
+  /* history */
+  .hist-stats { display:flex; gap:22px; margin-top:8px; } .hist-stats b { display:block; font-size:30px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; } .hist-stats small { color:var(--text); font-size:14px; }
+  .days { display:flex; gap:4px; margin-top:14px; align-items:flex-end; height:46px; }
+  .day { flex:1; border-radius:4px; min-height:6px; cursor:pointer; }
+  .day.flagged { background:repeating-linear-gradient(135deg, #cfcfcf 0 3px, transparent 3px 6px) !important; border:1px solid #d6d6d6; }
+  .day.none { background:#ececea !important; height:6px !important; }
+  .day-labels { display:flex; justify-content:space-between; color:var(--dim); font-size:11px; margin-top:6px; }
+  #daydetail { margin-top:10px; font-size:13px; color:var(--dim); min-height:16px; line-height:1.5; } #daydetail a { color:var(--dim); }
+
+  /* station card */
+  .st-status { margin-top:22px; border:1px solid var(--line); border-radius:18px; padding:18px; display:flex; gap:16px; align-items:center; }
+  .st-dot { flex:0 0 auto; width:12px; height:12px; border-radius:50%; margin:0 6px; }
+  .st-grid { display:grid; grid-template-columns:1fr 1fr; gap:26px 14px; margin-top:20px; }
+  .st-grid b { display:block; font-size:34px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; line-height:1.05; }
+  .st-grid small { display:block; font-size:15px; margin-top:4px; } .st-grid i { display:block; font-style:normal; color:var(--dim); font-size:12px; margin-top:2px; }
+  .st-bar { display:flex; gap:3px; margin-top:14px; }
+  .st-bar > div { min-width:26px; display:flex; flex-direction:column; border-left:2px solid var(--seg); padding-left:5px; }
+  .st-pct { font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; } .st-n { font-size:14px; color:var(--dim); font-variant-numeric:tabular-nums; margin-top:5px; }
+  .st-seg { height:26px; margin:4px 0 0 -7px; }
+  .st-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:12px; color:var(--dim); }
+  .st-legend i { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:6px; vertical-align:-1px; } .st-legend em { font-style:normal; opacity:.7; }
+  .st-dests { margin-top:10px; }
+  .st-dests > div { display:flex; align-items:center; gap:12px; padding:12px 8px; border-radius:10px; }
+  .st-dests > div:nth-child(even) { background:var(--soft); }
+  .st-dests .st-dn { flex:1; font-size:17px; } .st-dests b { font-size:17px; font-variant-numeric:tabular-nums; } .st-dests small { font-weight:700; font-size:12px; letter-spacing:.06em; text-transform:uppercase; width:52px; }
+  .trk { display:inline-block; background:#f8cf45; color:#1a1400; font-weight:700; font-size:12px; padding:3px 7px; border-radius:6px; margin-right:10px; vertical-align:1px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
 </style>
 </head>
 <body>
@@ -120,7 +144,7 @@ function addTrainIcon(id) {
     g.beginPath(); g.moveTo(x, y + r); g.arc(x + r, y + r, r, Math.PI, 0); g.lineTo(x + w, y + h - 4); g.quadraticCurveTo(x + w, y + h, x + w - 4, y + h);
     g.lineTo(x + 4, y + h); g.quadraticCurveTo(x, y + h, x, y + h - 4); g.closePath(); };
   g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 3; body(-1.6); g.fillStyle = ring || '#ffffff'; g.fill(); g.shadowBlur = 0;
-  body(ring ? 0.6 : 0.2); g.fillStyle = sched ? '#0d1117' : color; g.fill();
+  body(ring ? 0.6 : 0.2); g.fillStyle = sched ? '#ffffff' : color; g.fill();
   if (sched) { body(1.8); g.strokeStyle = color; g.lineWidth = 1.6; g.stroke(); }
   // windscreen
   g.beginPath(); g.moveTo(8.5, 12); g.quadraticCurveTo(W / 2, 5.5, W - 8.5, 12); g.lineTo(W - 9, 14.5); g.quadraticCurveTo(W / 2, 11, 9, 14.5); g.closePath();
@@ -185,19 +209,19 @@ async function boot() {
 map.on('load', async () => {
   const ov = await fetch('/api/routes').then((r) => r.json());
   map.addSource('routes', { type: 'geojson', data: { type: 'FeatureCollection', features: ov.routes.map((r) => ({ type: 'Feature', properties: { color: r.color, operator: r.operator }, geometry: { type: 'LineString', coordinates: decode(r.polyline) } })) } });
-  map.addLayer({ id: 'route-glow', type: 'line', source: 'routes', paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 5, 12, 12], 'line-blur': ['interpolate', ['linear'], ['zoom'], 6, 4, 12, 9], 'line-opacity': 0.22 } }, 'places');
+  map.addLayer({ id: 'route-glow', type: 'line', source: 'routes', paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 5, 12, 12], 'line-blur': ['interpolate', ['linear'], ['zoom'], 6, 4, 12, 9], 'line-opacity': 0.07 } }, 'places');
   map.addLayer({ id: 'route-core', type: 'line', source: 'routes', paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1, 12, 2.2], 'line-opacity': 0.85 } }, 'places');
   const stations = await fetch('/api/stations').then((r) => r.json());
   map.addSource('stations', { type: 'geojson', data: { type: 'FeatureCollection', features: stations.stations.map((s) => ({ type: 'Feature', properties: { id: s.id, name: s.name, n: s.operators.length }, geometry: { type: 'Point', coordinates: [s.lon, s.lat] } })) } });
-  map.addLayer({ id: 'station-dots', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['+', 1, ['get', 'n']], 13, ['+', 3, ['*', 1.5, ['get', 'n']]]], 'circle-color': '#0d1117', 'circle-stroke-color': '#c9d1d9', 'circle-stroke-width': 1.2 } });
+  map.addLayer({ id: 'station-dots', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['+', 1, ['get', 'n']], 13, ['+', 3, ['*', 1.5, ['get', 'n']]]], 'circle-color': '#ffffff', 'circle-stroke-color': '#6f7278', 'circle-stroke-width': 1.4 } });
   // an invisible, larger target so stations are easy to tap
   map.addLayer({ id: 'station-hit', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': 12, 'circle-opacity': 0 } });
-  map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', minzoom: 10, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#9aa5b1', 'text-halo-color': '#0d1117', 'text-halo-width': 1.2 } });
+  map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', minzoom: 10, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#4a4d52', 'text-halo-color': '#f3f1ec', 'text-halo-width': 1.2 } });
   // trail: the stretch of track each moving train covered in the last few minutes, fading out behind it
   map.addSource('train-trails', { type: 'geojson', lineMetrics: true, data: { type: 'FeatureCollection', features: [] } });
   map.addLayer({ id: 'train-trail', type: 'line', source: 'train-trails', layout: { 'line-cap': 'round' }, paint: {
     'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 13, 5],
-    'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(230,237,243,0)', 1, 'rgba(230,237,243,0.75)'] } });
+    'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(60,64,70,0)', 1, 'rgba(60,64,70,0.45)'] } });
   map.addSource('live-trains', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   // dot = the line's colour (identity); ring only when late (amber) or very late / cancelled (red)
   map.addLayer({ id: 'train-halo', type: 'circle', source: 'live-trains', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 7, 13, 16], 'circle-color': ['get', 'color'], 'circle-opacity': ['*', 0.22, ['get', 'opacity']], 'circle-blur': 0.7 } });
@@ -207,7 +231,7 @@ map.on('load', async () => {
     'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.42, 10, 0.7, 14, 1.05], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
     paint: { 'icon-opacity': ['get', 'opacity'] } });
   map.on('styleimagemissing', (e) => { if (e.id.startsWith('train|')) addTrainIcon(e.id); });
-  map.addLayer({ id: 'train-label', type: 'symbol', source: 'live-trains', minzoom: 10, layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, -1.6], 'text-allow-overlap': false }, paint: { 'text-color': '#e6edf3', 'text-halo-color': '#0d1117', 'text-halo-width': 1.2 } });
+  map.addLayer({ id: 'train-label', type: 'symbol', source: 'live-trains', minzoom: 10, layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, -1.6], 'text-allow-overlap': false }, paint: { 'text-color': '#111111', 'text-halo-color': '#ffffff', 'text-halo-width': 1.2 } });
   map.on('click', 'train-dot', (e) => openTrain(e.features[0].properties.id));
   map.on('click', 'station-hit', (e) => { if (!map.queryRenderedFeatures(e.point, { layers: ['train-dot'] }).length) openStation(e.features[0].properties.id); });
   map.on('mouseenter', 'station-hit', () => map.getCanvas().style.cursor = 'pointer'); map.on('mouseleave', 'station-hit', () => map.getCanvas().style.cursor = '');
@@ -265,7 +289,7 @@ const hm = (ms) => ms == null ? '' : new Date(ms).toLocaleTimeString([], { hour:
 const late = (sec) => sec == null ? '' : Math.abs(sec) < 90 ? 'On time' : sec > 0 ? `${Math.round(sec / 60)} min late` : `${Math.round(-sec / 60)} min early`;
 async function openTrain(id) {
   const t = await fetch('/api/trains/' + encodeURIComponent(id)).then((r) => r.json());
-  selected = { type: 'train', id, data: t }; renderTrain(t); panel.style.display = 'block'; loadHistory(t);
+  const fresh = selected?.id !== id; selected = { type: 'train', id, data: t }; renderTrain(t); panel.style.display = 'block'; if (fresh) panel.scrollTop = 0; loadHistory(t);
   const l = lines.get(t.shape); if (l) map.easeTo({ center: [t.lon, t.lat], zoom: Math.max(map.getZoom(), 10), duration: 900 });
 }
 async function refreshPanel() { if (selected?.type === 'train') { const t = await fetch('/api/trains/' + encodeURIComponent(selected.id)).then((r) => r.ok ? r.json() : null); if (t) { selected.data = t; renderTrain(t); loadHistory(t); } } }
@@ -286,9 +310,9 @@ function renderTrain(t) {
 }
 // ---- how the train is placed (an explainer figure following the selected train) ----
 const psFrame = document.createElement('iframe');
-psFrame.src = '/figures/position-source.html?embed';
+psFrame.src = '/figures/position-source-light.html?embed';
 psFrame.title = 'How this train is placed on the map';
-psFrame.style.cssText = 'width:100%;height:240px;border:0;display:block;border-radius:12px;background:#10151c';
+psFrame.style.cssText = 'width:100%;height:240px;border:0;display:block;border-radius:12px;background:#fbfbfa';
 let psLoaded = false, psLast = null;
 psFrame.addEventListener('load', () => { psLoaded = true; if (psLast) psFrame.contentWindow.postMessage(psLast, '*'); });
 function psSend(msg) { psLast = msg; if (psLoaded && psFrame.isConnected) psFrame.contentWindow.postMessage(msg, '*'); }
@@ -300,18 +324,18 @@ function trainHtml(t, cls, first, lastS, eta) {
     <div class="status ${cls}">${t.status === 'cancelled' ? 'Cancelled' : t.source === 'scheduled' ? 'Scheduled (no live data)' : late(t.delaySec) || 'Tracking'}
       <span class="tag">${t.fix === 'gps' ? 'GPS' : t.fix === 'predicted' ? 'Live times' : 'Timetable'}</span></div>
     <div class="ends"><div><div class="code">${esc(endName(t, first))}</div><div class="t">${hm(first.estDep ?? first.schDep)}</div></div>
-      <div style="text-align:center;color:var(--dim);padding-top:6px" id="etaline">${t.next ? `${esc(t.next.name)} in <b style="color:var(--text)">${eta ?? '?'} min</b>` : ''}</div>
       <div style="text-align:right"><div class="code">${esc(endName(t, lastS))}</div><div class="t">${hm(lastS.estArr ?? lastS.schArr)}</div></div></div>
-    <div class="bar"><i id="pbar" style="width:${(t.progress * 100).toFixed(1)}%;background:${STATUS_COLOR[cls]}"></i><em id="pdot" style="left:${(t.progress * 100).toFixed(1)}%"></em></div><!--split-->
+    <div class="bar"><i id="pbar" style="width:${(t.progress * 100).toFixed(1)}%;background:${STATUS_COLOR[cls]}"></i><em id="pdot" style="left:${(t.progress * 100).toFixed(1)}%"></em></div>
+    <div class="eq-sub" id="etaline">${t.next ? `Next stop ${esc(t.next.name)} in <b style="color:var(--text)">${eta ?? '?'} min</b>` : ''}</div><!--split-->
     <h4>Equipment</h4><div id="equipment">${equipmentHtml(t)}</div>
     <h4>Last 14 days</h4><div id="history"><div style="color:var(--dim)">Loading history…</div></div>
     <h4>Stops</h4>
-    <table>${t.stops.map((s) => `<tr class="${s.status === 'departed' ? 'past' : ''}"><td>${esc(s.name)}${s.track ? `<span class="tag">Trk ${esc(s.track)}</span>` : ''}${s.status === 'skipped' ? '<span class="tag">skipped</span>' : ''}</td>
+    <table>${t.stops.map((s) => `<tr class="${s.status === 'departed' ? 'past' : ''}"><td>${esc(s.name)}${s.track ? `<span class="trk" style="margin:0 0 0 8px">${esc(s.track)}</span>` : ''}${s.status === 'skipped' ? '<span class="tag">skipped</span>' : ''}</td>
       <td class="time">${s.schArr != null && s.estArr != null && Math.abs(s.estArr - s.schArr) > 90000 ? `<s style="color:var(--dim)">${hm(s.schArr)}</s> ` : ''}<span class="${s.status === 'departed' ? '' : cls}">${hm(s.estArr ?? s.schArr)}</span></td></tr>`).join('')}</table>
     <div class="raw"><a href="/api/trains/${encodeURIComponent(t.id)}" target="_blank">Raw record</a></div>`;
 }
 // ---- equipment (live consist for LIRR / Metro-North, typical for Amtrak) ----
-const LOAD = { EMPTY: ['#3fb950', 'Plenty of seats'], MANY_SEATS: ['#3fb950', 'Many seats'], FEW_SEATS: ['#f0a33a', 'Few seats'], STANDING_ROOM_ONLY: ['#f85149', 'Standing room'], FULL: ['#f85149', 'Full'], NO_DATA: ['#3a4654', 'No sensor'] };
+const LOAD = { EMPTY: ['#3fb950', 'Plenty of seats'], MANY_SEATS: ['#3fb950', 'Many seats'], FEW_SEATS: ['#f0a33a', 'Few seats'], STANDING_ROOM_ONLY: ['#f85149', 'Standing room'], FULL: ['#f85149', 'Full'], NO_DATA: ['#c9c9c9', 'No sensor'] };
 function equipmentHtml(t) {
   const e = t.equipment;
   if (!e) return '<div style="color:var(--dim)">Not reported for this train yet.</div>';
@@ -322,14 +346,14 @@ function equipmentHtml(t) {
   const counted = e.cars.some((c) => c.passengers != null), riders = e.cars.reduce((a, c) => a + (c.passengers ?? 0), 0);
   const locos = e.cars.filter((c) => c.locomotive);
   const cars = e.cars.map((c, i) => {
-    const [col, label] = LOAD[c.loading] ?? ['#3a4654', c.loading];
+    const [col, label] = LOAD[c.loading] ?? ['#c9c9c9', c.loading];
     const rear = c.locomotive && i === e.cars.length - 1 && i > 0;
     const tip = `${c.model} ${c.number ?? ''}${c.locomotive ? ' (locomotive)' : ` · ${label}${c.passengers != null ? `, ${c.passengers} aboard` : ''}`}${c.restroom ? ' · restroom' : ''}`;
     return `<div class="car ${c.locomotive ? 'loco' : ''} ${rear ? 'rear' : ''}" style="background:${col}" title="${esc(tip)}">${c.restroom ? '·' : ''}<span>${c.number ?? ''}</span></div>`;
   }).join('');
   return `<div class="eq-name">${esc(e.name)}</div>
     <div class="eq-sub">${e.carsRunning ?? e.cars.length} cars${e.carsScheduled ? ` (${e.carsScheduled} scheduled)` : ''}${diff}${locos.length ? ` · ${locos.map((l) => `${esc(l.model)} ${l.number ?? ''}`).join(' + ')}` : ''}${counted ? ` · ${riders} aboard` : ''}</div>
-    ${e.cars.length ? `<div class="cars">${cars}</div><div class="cars-legend"><span>front first</span><span><i style="background:#3fb950"></i>seats free</span><span><i style="background:#f0a33a"></i>few seats</span><span><i style="background:#f85149"></i>full</span><span><i style="background:#3a4654"></i>no sensor</span><span>· restroom</span></div>` : `<div class="eq-sub" style="margin-top:6px">The railroad didn't list the cars for this run.</div>`}
+    ${e.cars.length ? `<div class="cars">${cars}</div><div class="cars-legend"><span>front first</span><span><i style="background:#3fb950"></i>seats free</span><span><i style="background:#f0a33a"></i>few seats</span><span><i style="background:#f85149"></i>full</span><span><i style="background:#c9c9c9"></i>no sensor</span><span>· restroom</span></div>` : `<div class="eq-sub" style="margin-top:6px">The railroad didn't list the cars for this run.</div>`}
     <div class="eq-sub" style="margin-top:6px">Live from the railroad · <a href="/api/trains/${encodeURIComponent(t.id)}/equipment/raw" target="_blank" style="color:var(--dim)">Raw record</a></div>`;
 }
 
@@ -380,12 +404,12 @@ async function openStation(id) {
   let stats = '';
   if (st) {
     const total = st.departures || 1, top = st.lines.slice(0, 4), other = st.lines.slice(4).reduce((a, l) => a + l.count, 0);
-    const segs = [...top.map((l) => ({ label: l.name, op: l.operator, color: l.color, count: l.count })), ...(other ? [{ label: 'Other', color: '#3a4654', count: other }] : [])];
+    const segs = [...top.map((l) => ({ label: l.name, op: l.operator, color: l.color, count: l.count })), ...(other ? [{ label: 'Other', color: '#d5d5d2', count: other }] : [])];
     const s = st.status;
     stats = `<div class="st-status"><span class="st-dot" style="background:${STATUS_TONE[s.level]};box-shadow:0 0 0 5px color-mix(in srgb, ${STATUS_TONE[s.level]} 25%, transparent)"></span>
         <div><div style="color:${STATUS_TONE[s.level]};font-weight:600;font-size:16px">${esc(s.text)}</div>
         <div class="eq-sub">${s.liveSoon ? `${s.lateSoon} of ${s.liveSoon} live departures in the next hour ${s.lateSoon === 1 ? 'is' : 'are'} late or cancelled` : 'Status comes from live trains due in the next hour'}</div></div></div>
-      <div class="st-h">Station stats</div><div class="eq-sub">Today by the timetable</div>
+      <div class="st-h">Station stats</div><div class="st-sub">This station by the numbers, today</div>
       <div class="st-grid">
         <div><b>${st.departures}</b><small>Departures</small><i>${st.remaining} still to go</i></div>
         <div><b>${st.lines.length}</b><small>Lines</small><i>${st.hub.operators.map((o) => OP_LABEL[o] ?? o).join(' · ')}</i></div>
@@ -393,7 +417,7 @@ async function openStation(id) {
         <div><b>${st.busiestHour == null ? '–' : hourLabel(st.busiestHour)}</b><small>Busiest hour</small><i>${st.busiestHour == null ? '' : `${st.perHour[st.busiestHour]} departures`}</i></div>
       </div>
       <div class="st-h">Busiest lines</div>
-      <div class="st-bar">${segs.map((g) => `<div style="flex:${g.count}" title="${esc(g.label)}: ${g.count} departures">
+      <div class="st-bar">${segs.map((g) => `<div style="flex:${g.count};--seg:${esc(g.color)}" title="${esc(g.label)}: ${g.count} departures">
           <span class="st-pct">${Math.round((g.count / total) * 100)}%</span><span class="st-seg" style="background:${esc(g.color)}"></span><span class="st-n">${g.count}</span></div>`).join('')}</div>
       <div class="st-legend">${segs.map((g) => `<span><i style="background:${esc(g.color)}"></i>${esc(g.label)}${g.op && st.hub.operators.length > 1 ? ` <em>${esc(OP_LABEL[g.op] ?? g.op)}</em>` : ''}</span>`).join('')}</div>
       <div class="st-h">Busiest destinations</div>
@@ -403,13 +427,14 @@ async function openStation(id) {
     <div class="chips">${chips}</div>
     <div class="big">${esc(b.hub.name)}</div>
     <div class="op" style="margin-top:2px">${b.hub.operators.map((o) => OP_LABEL[o] ?? o.toUpperCase()).join(' · ')}</div>
+    <hr class="sep">
     ${stats}
     <div class="st-h">Departures</div>
     <table>${rows.map((r) => { const cls = r.status === 'Cancelled' ? 'bad' : r.source === 'scheduled' ? 'sched' : (r.delaySec ?? 0) >= 300 ? 'late' : 'ontime';
       return `<tr style="cursor:${r.trainId ? 'pointer' : 'default'}" ${r.trainId ? `onclick="window.__openTrain('${esc(r.trainId)}')"` : ''}><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${esc(r.color)};margin-right:6px"></span><b>${esc(r.trainNumber)}</b> ${esc(r.destination)}<div style="color:var(--dim);font-size:12px">${esc(r.label)}</div></td>
       <td class="time">${r.track ? `<span class="trk">${esc(r.track)}</span>` : ''}<b class="${cls}">${hm(r.estimated ?? r.scheduled)}</b><div class="${cls}" style="font-size:12px">${esc(r.status)}</div></td></tr>`; }).join('')}</table>
     <div class="raw"><a href="/api/stations/${encodeURIComponent(id)}/stats" target="_blank">Raw stats</a> · <a href="/api/stations/${encodeURIComponent(id)}/board" target="_blank">Raw board</a></div>`;
-  panel.style.display = 'block';
+  panel.style.display = 'block'; panel.scrollTop = 0;
   map.easeTo({ center: [b.hub.lon, b.hub.lat], zoom: Math.max(map.getZoom(), 12), duration: 900 });
 }
 window.__openTrain = openTrain; window.__openStation = openStation;

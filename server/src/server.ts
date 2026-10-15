@@ -15,12 +15,12 @@ const engine = new Engine(routes);
 
 const tileServer = new TileServer(config.tilesFile);
 
-/** The map style with URLs filled in. `?tiles=xyz` swaps the PMTiles source for this server's z/x/y endpoint. */
+/** The map style with URLs filled in (light; `?theme=dark` for the dark one). `?tiles=xyz` swaps the PMTiles source for this server's z/x/y endpoint. */
 function styleJson(req: http.IncomingMessage, url: URL) {
   const host = req.headers['x-forwarded-host'] ?? req.headers.host ?? `localhost:${config.port}`;
   const proto = (req.headers['x-forwarded-proto'] as string) ?? 'http';
   const tiles = config.tilesUrl || `${proto}://${host}/tiles/trains.pmtiles`;
-  const style = JSON.parse(fs.readFileSync(config.styleFile, 'utf8').replaceAll('{{TILES_URL}}', tiles).replaceAll('{{GLYPHS_URL}}', config.glyphsUrl));
+  const style = JSON.parse(fs.readFileSync(url.searchParams.get('theme') === 'dark' ? config.darkStyleFile : config.styleFile, 'utf8').replaceAll('{{TILES_URL}}', tiles).replaceAll('{{GLYPHS_URL}}', config.glyphsUrl));
   if (url.searchParams.get('tiles') === 'xyz') {
     const src = style.sources.trains;
     style.sources.trains = { type: 'vector', tiles: [`${proto}://${host}/tiles/{z}/{x}/{y}.mvt`], minzoom: 0, maxzoom: 14, attribution: src.attribution };

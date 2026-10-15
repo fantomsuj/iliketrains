@@ -10,7 +10,7 @@
 // timetable-only. Distance since the report uses the server's default pace of 20 m/s.
 //
 // node build.mjs [--light]   writes position-source.html / position-source-light.html
-// (the dark build also writes server/public/figures/position-source.html, framed by the train card with ?embed)
+// (both are also written to server/public/figures/; the train card frames the light one with ?embed)
 // Query string on the page: ?op=amtrak|mta|njt&age=<seconds>&fix=gps|predicted|timetable
 // pins the figure to one train's state (no tour).
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -465,7 +465,7 @@ if (params.has("op")) applyTrain({ op: params.get("op"), fix: params.get("fix") 
 addEventListener("message", (event) => { if (event.data && event.data.type === "position-source") applyTrain(event.data); });
 setInterval(() => { if (train) { targetAge = trainAge(); run(); } }, 5000);
 if (embedded) {
-  const report = () => parent.postMessage({ type: "position-source:height", height: document.documentElement.scrollHeight }, "*");
+  const report = () => parent.postMessage({ type: "position-source:height", height: Math.ceil(document.querySelector(".iso-plate").getBoundingClientRect().height) }, "*");
   new ResizeObserver(report).observe(document.body); report();
 }
 window.__positionSource = { get op() { return opIndex; }, get shuttle() { return shuttleX; }, get age() { return needleState.at; } };
@@ -479,13 +479,15 @@ const css = `
 .ps-glow{fill:var(--anatomy-strong);opacity:.22;filter:blur(4px)}
 .ps-digits{fill:var(--anatomy-hi);font-family:ui-monospace,"SF Mono",Menlo,monospace;font-weight:600;letter-spacing:.2px}
 .iso-stage{cursor:pointer;touch-action:pan-y}
-body.ps-embed{background:transparent;--anatomy-page:transparent;--anatomy-card:#10151c;--anatomy-paper:#10151c}
+html:has(body.ps-embed){background:transparent;color-scheme:light}
+body.ps-embed{background:transparent;--anatomy-page:transparent}
+body.ps-embed[data-theme="dark"]{--anatomy-card:#10151c;--anatomy-paper:#10151c}
 body.ps-embed .iso-page{width:100%;margin:0}
 body.ps-embed .iso-legend,body.ps-embed [data-corner="hint"],body.ps-embed [data-corner="fig"],body.ps-embed [data-corner="title"]{display:none}
 body.ps-embed .iso-stage{cursor:default}
 body.ps-embed .iso-figure{margin:0}
 body.ps-embed .iso-plate{padding:0 0 30px;box-shadow:none;overflow:hidden;border-radius:12px}
-body.ps-embed .iso-plate .iso-svg{width:110%;margin:-6% -5% -4%}
+body.ps-embed .iso-plate .iso-svg{width:108%;margin:-2% -4% -3%}
 body.ps-embed .iso-plate-corners{inset:auto 12px 11px 12px;height:12px}
 body.ps-embed .iso-plate-corner[data-corner="readout"]{font-size:11px;bottom:0}
 `;
@@ -508,10 +510,10 @@ const name = theme === "light" ? "position-source-light.html" : "position-source
 const page = k.pageHtml({ title: "Where is this train?", theme, body: `<style>${css}</style>${body}`, script: kitScript() + live });
 writeFileSync(join(HERE, name), page);
 console.log("wrote", name);
-// the dark page is also what the map's train card frames (served from server/public)
-if (theme === "dark") {
+// the map's train card frames the light page (served from server/public)
+{
   const served = join(HERE, "../../server/public/figures");
   mkdirSync(served, { recursive: true });
-  writeFileSync(join(served, "position-source.html"), page);
-  console.log("wrote server/public/figures/position-source.html");
+  writeFileSync(join(served, name), page);
+  console.log("wrote server/public/figures/" + name);
 }
