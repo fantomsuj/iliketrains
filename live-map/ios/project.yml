@@ -1,0 +1,52 @@
+# XcodeGen spec: `brew install xcodegen && xcodegen` creates Trains.xcodeproj (see README).
+name: Trains
+options:
+  bundleIdPrefix: app.trains
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  MapLibre:
+    url: https://github.com/maplibre/maplibre-gl-native-distribution
+    from: 6.12.0
+  TrainsCore:
+    path: TrainsCore
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Trains:
+    type: application
+    platform: iOS
+    sources: [Trains]
+    dependencies:
+      - package: MapLibre
+      - package: TrainsCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.trains.Trains
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # Point at your server. Simulator: localhost works. Device: use the Mac's LAN address.
+        TRAINS_SERVER_URL: http://localhost:8787
+    info:
+      path: Trains/Info.plist
+      properties:
+        CFBundleDisplayName: Trains
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        TrainsServerURL: $(TRAINS_SERVER_URL)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
+schemes:
+  Trains:
+    build:
+      targets:
+        Trains: all
+    test:
+      targets:
+        - package: TrainsCore/TrainsCoreTests

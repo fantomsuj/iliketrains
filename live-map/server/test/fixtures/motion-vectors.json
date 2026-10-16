@@ -1,0 +1,289 @@
+{
+ "_comment": "Hand-worked expectations for distanceAt/smoothStep. Shared by server/test/motion.test.ts and ios/TrainsCore/Tests. Times in ms, distances in m.",
+ "distance": [
+  {
+   "name": "on-time legs with a dwell, capped at the end of the line",
+   "plan": {
+    "d0": 0,
+    "t0": 0,
+    "fallbackSpeed": 20,
+    "maxD": 3000,
+    "stops": [
+     {
+      "d": 1000,
+      "arr": 100000,
+      "dep": 130000
+     },
+     {
+      "d": 3000,
+      "arr": 230000,
+      "dep": 230000
+     }
+    ],
+    "maxSpeed": 1000
+   },
+   "samples": [
+    [
+     0,
+     0
+    ],
+    [
+     50000,
+     500
+    ],
+    [
+     100000,
+     1000
+    ],
+    [
+     120000,
+     1000
+    ],
+    [
+     130000,
+     1000
+    ],
+    [
+     180000,
+     2000
+    ],
+    [
+     230000,
+     3000
+    ],
+    [
+     300000,
+     3000
+    ]
+   ]
+  },
+  {
+   "name": "overdue arrival creeps at fallback speed, dwells 30 s, then coasts to maxD",
+   "plan": {
+    "d0": 0,
+    "t0": 0,
+    "fallbackSpeed": 10,
+    "maxD": 2000,
+    "stops": [
+     {
+      "d": 500,
+      "arr": -10000,
+      "dep": -5000
+     }
+    ],
+    "maxSpeed": 1000
+   },
+   "samples": [
+    [
+     25000,
+     250
+    ],
+    [
+     50000,
+     500
+    ],
+    [
+     70000,
+     500
+    ],
+    [
+     80000,
+     500
+    ],
+    [
+     90000,
+     600
+    ],
+    [
+     300000,
+     2000
+    ]
+   ]
+  },
+  {
+   "name": "time before the anchor returns the anchor",
+   "plan": {
+    "d0": 1200,
+    "t0": 10000,
+    "fallbackSpeed": 20,
+    "maxD": 5000,
+    "stops": [
+     {
+      "d": 2200,
+      "arr": 60000,
+      "dep": 60000
+     }
+    ],
+    "maxSpeed": 1000
+   },
+   "samples": [
+    [
+     0,
+     1200
+    ],
+    [
+     10000,
+     1200
+    ],
+    [
+     35000,
+     1700
+    ]
+   ]
+  },
+  {
+   "name": "stops behind the anchor are ignored",
+   "plan": {
+    "d0": 1500,
+    "t0": 0,
+    "fallbackSpeed": 20,
+    "maxD": 4000,
+    "stops": [
+     {
+      "d": 1000,
+      "arr": 0,
+      "dep": 0
+     },
+     {
+      "d": 2500,
+      "arr": 100000,
+      "dep": 100000
+     }
+    ],
+    "maxSpeed": 1000
+   },
+   "samples": [
+    [
+     50000,
+     2000
+    ],
+    [
+     100000,
+     2500
+    ]
+   ]
+  },
+  {
+   "name": "waits at the origin until departure",
+   "plan": {
+    "d0": 0,
+    "t0": 0,
+    "fallbackSpeed": 20,
+    "maxD": 6000,
+    "stops": [
+     {
+      "d": 0,
+      "arr": 60000,
+      "dep": 120000
+     },
+     {
+      "d": 6000,
+      "arr": 420000,
+      "dep": 420000
+     }
+    ],
+    "maxSpeed": 1000
+   },
+   "samples": [
+    [
+     30000,
+     0
+    ],
+    [
+     119000,
+     0
+    ],
+    [
+     270000,
+     3000
+    ]
+   ]
+  },
+  {
+   "name": "an optimistic arrival is capped at maxSpeed (arrives late)",
+   "plan": {
+    "d0": 0,
+    "t0": 0,
+    "fallbackSpeed": 20,
+    "maxSpeed": 20,
+    "maxD": 5000,
+    "stops": [
+     {
+      "d": 2000,
+      "arr": 10000,
+      "dep": 10000
+     },
+     {
+      "d": 5000,
+      "arr": 250000,
+      "dep": 250000
+     }
+    ]
+   },
+   "samples": [
+    [
+     10000,
+     200
+    ],
+    [
+     50000,
+     1000
+    ],
+    [
+     100000,
+     2000
+    ],
+    [
+     175000,
+     3500
+    ],
+    [
+     250000,
+     5000
+    ]
+   ]
+  }
+ ],
+ "smooth": [
+  {
+   "name": "holds instead of moving backward",
+   "displayed": 100,
+   "target": 50,
+   "dt": 0.016,
+   "expect": 100,
+   "snapped": false
+  },
+  {
+   "name": "eases toward a target ahead",
+   "displayed": 0,
+   "target": 100,
+   "dt": 1.5,
+   "expect": 63.212,
+   "snapped": false
+  },
+  {
+   "name": "snaps on a large forward jump",
+   "displayed": 0,
+   "target": 10000,
+   "dt": 0.016,
+   "expect": 10000,
+   "snapped": true
+  },
+  {
+   "name": "snaps (cross-fade) on a large backward correction",
+   "displayed": 5000,
+   "target": 1000,
+   "dt": 0.016,
+   "expect": 1000,
+   "snapped": true
+  },
+  {
+   "name": "catch-up speed is capped at 150 m/s",
+   "displayed": 0,
+   "target": 1500,
+   "dt": 1.0,
+   "expect": 150,
+   "snapped": false
+  }
+ ]
+}
