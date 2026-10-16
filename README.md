@@ -101,3 +101,9 @@ Before shipping a live version, add:
 The palette intentionally uses warm parchment surfaces over a muted Apple map, signal orange for primary emphasis, and operator colors only where identity matters. All controls remain native buttons, menus, sheets, and MapKit controls so the personality does not come at the expense of accessibility or familiar iOS behavior.
 
 The product and implementation designs are recorded under `docs/superpowers/`.
+
+## Live train map
+
+`live-map/` holds the live network map for Amtrak, LIRR, Metro-North and NJ Transit: a Node server that
+merges the railroads' live feeds and timetables, a web map (train icons that glide along the track, station
+and train cards, light and dark themes), and a SwiftUI client. Start with `live-map/README.md`.
