@@ -1,0 +1,13 @@
+stop_id,stop_name,stop_lat,stop_lon
+BAL,Baltimore Penn Station,39.307302,-76.615688
+BBY,Boston,42.347317,-71.075828
+BOS,Boston,42.352311,-71.055304
+BWI,Bwi Thurgood Marshall Airport Station,39.192362,-76.6943
+NWK,Newark,40.734706,-74.16475
+NYP,Ny Moynihan Train Hall At Penn Station,40.750327,-73.994459
+PHL,Philadelphia,39.955615,-75.181041
+PVD,Providence,41.82949,-71.413478
+RTE,Route 128 Amtrak Station,42.210242,-71.147894
+STM,Stamford Amtrak Station,41.04713,-73.54216
+WIL,Wilmington,39.737263,-75.551095
+WAS,Washington Union Station,38.896993,-77.006422

@@ -1,0 +1,13 @@
+node_modules/
+tiles/dist/
+server/data/gtfs/
+*.part
+.DS_Store
+ios/build/
+ios/.build/
+ios/TrainsCore/.build/
+ios/*.xcodeproj/xcuserdata/
+server/data/demo/*/**/*.bin
+
+.build/
+server/data/state/
