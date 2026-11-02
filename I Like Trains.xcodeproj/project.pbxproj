@@ -29,6 +29,12 @@
 		C00000000000000000000020 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* Preview Assets.xcassets */; };
 		C00000000000000000000021 /* MockRailDataServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000021 /* MockRailDataServiceTests.swift */; };
 		C00000000000000000000022 /* RailMapViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* RailMapViewModelTests.swift */; };
+		C00000000000000000000025 /* RouteAtlas.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* RouteAtlas.swift */; };
+		C00000000000000000000026 /* RouteAtlasService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* RouteAtlasService.swift */; };
+		C00000000000000000000027 /* RouteExplorerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000027 /* RouteExplorerViewModel.swift */; };
+		C00000000000000000000028 /* RouteExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* RouteExplorerView.swift */; };
+		C00000000000000000000029 /* route-atlas.json in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* route-atlas.json */; };
+		C00000000000000000000030 /* RouteAtlasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000030 /* RouteAtlasTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +72,12 @@
 		B00000000000000000000022 /* RailMapViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailMapViewModelTests.swift; sourceTree = "<group>"; };
 		B00000000000000000000023 /* I Like Trains.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "I Like Trains.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000024 /* I Like TrainsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "I Like TrainsTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000025 /* RouteAtlas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteAtlas.swift; sourceTree = "<group>"; };
+		B00000000000000000000026 /* RouteAtlasService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteAtlasService.swift; sourceTree = "<group>"; };
+		B00000000000000000000027 /* RouteExplorerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteExplorerViewModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000028 /* RouteExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteExplorerView.swift; sourceTree = "<group>"; };
+		B00000000000000000000029 /* route-atlas.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = route-atlas.json; sourceTree = "<group>"; };
+		B00000000000000000000030 /* RouteAtlasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteAtlasTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +116,7 @@
 				D00000000000000000000005 /* ViewModels */,
 				D00000000000000000000006 /* Views */,
 				D00000000000000000000008 /* Support */,
+				D00000000000000000000012 /* Data */,
 				D00000000000000000000009 /* Resources */,
 			);
 			path = "I Like Trains";
@@ -116,6 +129,7 @@
 				B00000000000000000000003 /* Train.swift */,
 				B00000000000000000000004 /* RailSegment.swift */,
 				B00000000000000000000005 /* FreightSighting.swift */,
+				B00000000000000000000025 /* RouteAtlas.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -125,6 +139,7 @@
 			children = (
 				B00000000000000000000006 /* RailDataProviding.swift */,
 				B00000000000000000000007 /* MockRailDataService.swift */,
+				B00000000000000000000026 /* RouteAtlasService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -133,6 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000008 /* RailMapViewModel.swift */,
+				B00000000000000000000027 /* RouteExplorerViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -141,6 +157,7 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000009 /* RailMapView.swift */,
+				B00000000000000000000028 /* RouteExplorerView.swift */,
 				D00000000000000000000007 /* Components */,
 			);
 			path = Views;
@@ -183,6 +200,7 @@
 			children = (
 				B00000000000000000000021 /* MockRailDataServiceTests.swift */,
 				B00000000000000000000022 /* RailMapViewModelTests.swift */,
+				B00000000000000000000030 /* RouteAtlasTests.swift */,
 			);
 			path = "I Like TrainsTests";
 			sourceTree = "<group>";
@@ -194,6 +212,14 @@
 				B00000000000000000000024 /* I Like TrainsTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000012 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000029 /* route-atlas.json */,
+			);
+			path = Data;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -283,6 +309,7 @@
 			files = (
 				C00000000000000000000019 /* Assets.xcassets in Resources */,
 				C00000000000000000000020 /* Preview Assets.xcassets in Resources */,
+				C00000000000000000000029 /* route-atlas.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -318,6 +345,10 @@
 				C00000000000000000000016 /* PressableButtonStyle.swift in Sources */,
 				C00000000000000000000017 /* Theme.swift in Sources */,
 				C00000000000000000000018 /* RailCoordinate+MapKit.swift in Sources */,
+				C00000000000000000000025 /* RouteAtlas.swift in Sources */,
+				C00000000000000000000026 /* RouteAtlasService.swift in Sources */,
+				C00000000000000000000027 /* RouteExplorerViewModel.swift in Sources */,
+				C00000000000000000000028 /* RouteExplorerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -327,6 +358,7 @@
 			files = (
 				C00000000000000000000021 /* MockRailDataServiceTests.swift in Sources */,
 				C00000000000000000000022 /* RailMapViewModelTests.swift in Sources */,
+				C00000000000000000000030 /* RouteAtlasTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

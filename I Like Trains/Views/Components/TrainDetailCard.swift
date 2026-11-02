@@ -8,10 +8,10 @@ struct TrainDetailCard: View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("\(train.operator.shortName)  •  \(train.number)")
+                    Text("\(train.railOperator.shortName)  •  \(train.number)")
                         .font(.caption.weight(.black))
                         .tracking(0.8)
-                        .foregroundStyle(train.operator.tint)
+                        .foregroundStyle(train.railOperator.tint)
 
                     Text(train.name)
                         .font(.system(.title2, design: .rounded, weight: .black))
@@ -140,7 +140,7 @@ private struct Metric: View {
                 id: "preview-6",
                 number: "6",
                 name: "California Zephyr",
-                operator: .amtrak,
+                railOperator: .amtrak,
                 origin: "Emeryville",
                 destination: "Chicago",
                 coordinate: .init(latitude: 39.74, longitude: -104.99),

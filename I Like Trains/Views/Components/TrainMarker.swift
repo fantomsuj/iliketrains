@@ -8,24 +8,24 @@ struct TrainMarker: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(isSelected ? train.operator.tint : RailTheme.parchment)
+                .fill(isSelected ? train.railOperator.tint : RailTheme.parchment)
                 .frame(width: isSelected ? 54 : 46, height: isSelected ? 54 : 46)
-                .shadow(color: train.operator.tint.opacity(0.34), radius: isSelected ? 12 : 6, y: 4)
+                .shadow(color: train.railOperator.tint.opacity(0.34), radius: isSelected ? 12 : 6, y: 4)
 
             Image(systemName: "train.side.front.car")
                 .font(.system(size: isSelected ? 22 : 18, weight: .black))
-                .foregroundStyle(isSelected ? .white : train.operator.tint)
+                .foregroundStyle(isSelected ? .white : train.railOperator.tint)
         }
         .overlay {
             Circle()
-                .strokeBorder(train.operator.tint, lineWidth: isSelected ? 3 : 2)
+                .strokeBorder(train.railOperator.tint, lineWidth: isSelected ? 3 : 2)
         }
         .animation(
             reduceMotion ? nil : .bouncy(duration: 0.4, extraBounce: 0.12),
             value: isSelected
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(train.operator.displayName) train \(train.number), \(train.name)")
+        .accessibilityLabel("\(train.railOperator.displayName) train \(train.number), \(train.name)")
         .accessibilityValue("\(train.status.label), \(train.speedMPH) miles per hour")
     }
 }
@@ -39,7 +39,7 @@ struct FreightSightingMarker: View {
                 .font(.system(size: 14, weight: .black))
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
-                .background(sighting.operator.tint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(sighting.railOperator.tint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay(alignment: .bottomTrailing) {
                     Circle()
                         .fill(confidenceColor)
@@ -47,7 +47,7 @@ struct FreightSightingMarker: View {
                         .overlay(Circle().stroke(.white, lineWidth: 1.5))
                 }
 
-            Text(sighting.operator.shortName)
+            Text(sighting.railOperator.shortName)
                 .font(.caption2.weight(.heavy))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
@@ -68,7 +68,7 @@ struct FreightSightingMarker: View {
         }
         .shadow(color: .black.opacity(0.18), radius: 5, y: 3)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(sighting.operator.displayName) freight sighting")
+        .accessibilityLabel("\(sighting.railOperator.displayName) freight sighting")
         .accessibilityValue(
             "\(Int(sighting.confidence * 100)) percent confidence, " +
             "\(sighting.reporterCount) reporters, " +

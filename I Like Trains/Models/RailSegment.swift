@@ -25,7 +25,7 @@ public struct RailSegment: Identifiable, Codable, Hashable, Sendable {
 
     public let id: String
     public let name: String
-    public let operator: RailOperator?
+    public let railOperator: RailOperator?
     public let kind: Kind
     public let coordinates: [RailCoordinate]
     public let stations: [RailStation]
@@ -35,7 +35,7 @@ public struct RailSegment: Identifiable, Codable, Hashable, Sendable {
     public init(
         id: String,
         name: String,
-        operator: RailOperator?,
+        railOperator: RailOperator?,
         kind: Kind,
         coordinates: [RailCoordinate],
         stations: [RailStation],
@@ -44,7 +44,7 @@ public struct RailSegment: Identifiable, Codable, Hashable, Sendable {
     ) {
         self.id = id
         self.name = name
-        self.operator = operator
+        self.railOperator = railOperator
         self.kind = kind
         self.coordinates = coordinates
         self.stations = stations

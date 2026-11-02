@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BrandBar: View {
     let activeFilterCount: Int
+    let onRoutes: () -> Void
     let onSearch: () -> Void
     let onFilters: () -> Void
 
@@ -15,6 +16,15 @@ struct BrandBar: View {
                 .accessibilityAddTraits(.isHeader)
 
             Spacer(minLength: 12)
+
+            Button(action: onRoutes) {
+                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .frame(width: 48, height: 48)
+                    .background(RailTheme.parchment, in: Circle())
+            }
+            .buttonStyle(.pressable)
+            .accessibilityLabel("Explore city-to-city routes")
 
             Button(action: onSearch) {
                 Image(systemName: "magnifyingglass")
@@ -60,7 +70,7 @@ struct BrandBar: View {
 #Preview {
     ZStack {
         Color.gray.opacity(0.3)
-        BrandBar(activeFilterCount: 2, onSearch: {}, onFilters: {})
+        BrandBar(activeFilterCount: 2, onRoutes: {}, onSearch: {}, onFilters: {})
             .padding()
     }
 }

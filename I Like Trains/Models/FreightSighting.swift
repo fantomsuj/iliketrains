@@ -2,7 +2,7 @@ import Foundation
 
 public struct FreightSighting: Identifiable, Codable, Hashable, Sendable {
     public let id: String
-    public let operator: RailOperator
+    public let railOperator: RailOperator
     public let coordinate: RailCoordinate
     public let direction: String
     public let equipment: String
@@ -12,7 +12,7 @@ public struct FreightSighting: Identifiable, Codable, Hashable, Sendable {
 
     public init(
         id: String,
-        operator: RailOperator,
+        railOperator: RailOperator,
         coordinate: RailCoordinate,
         direction: String,
         equipment: String,
@@ -21,7 +21,7 @@ public struct FreightSighting: Identifiable, Codable, Hashable, Sendable {
         reporterCount: Int
     ) {
         self.id = id
-        self.operator = operator
+        self.railOperator = railOperator
         self.coordinate = coordinate
         self.direction = direction
         self.equipment = equipment

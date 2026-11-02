@@ -12,7 +12,8 @@ let package = Package(
             name: "ILikeTrainsData",
             path: "I Like Trains",
             exclude: ["I_Like_TrainsApp.swift", "Resources", "Support", "Views"],
-            sources: ["Models", "Services", "ViewModels"]
+            sources: ["Models", "Services", "ViewModels"],
+            resources: [.copy("Data/route-atlas.json")]
         ),
         .testTarget(
             name: "ILikeTrainsDataTests",
