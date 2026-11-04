@@ -7,6 +7,8 @@ struct RailMapView: View {
     @State private var cameraPosition: MapCameraPosition = .region(Self.nationalRegion)
     @State private var isShowingSearch = false
     @State private var isShowingFilters = false
+    @State private var isShowingRoutes = false
+    @State private var routeModel = RouteExplorerViewModel(provider: BundledRouteAtlasService())
     @Namespace private var mapScope
 
     var body: some View {
@@ -16,6 +18,7 @@ struct RailMapView: View {
             VStack(spacing: 12) {
                 BrandBar(
                     activeFilterCount: activeFilterCount,
+                    onRoutes: { isShowingRoutes = true },
                     onSearch: { isShowingSearch = true },
                     onFilters: { isShowingFilters = true }
                 )
@@ -69,6 +72,11 @@ struct RailMapView: View {
         .sheet(isPresented: $isShowingFilters) {
             RailFilterSheet(model: model)
         }
+        .fullScreenCover(isPresented: $isShowingRoutes) {
+            RouteExplorerView(model: routeModel) {
+                isShowingRoutes = false
+            }
+        }
     }
 
     private var railMap: some View {
@@ -76,7 +84,7 @@ struct RailMapView: View {
             ForEach(model.visibleSegments) { segment in
                 MapPolyline(coordinates: segment.coordinates.map(\.mapCoordinate))
                     .stroke(
-                        segment.operator?.tint ?? RailTheme.railInk.opacity(0.72),
+                        segment.railOperator?.tint ?? RailTheme.railInk.opacity(0.72),
                         style: StrokeStyle(
                             lineWidth: lineWidth(for: segment),
                             lineCap: .round,
@@ -106,7 +114,7 @@ struct RailMapView: View {
 
             ForEach(model.visibleSightings) { sighting in
                 Annotation(
-                    "\(sighting.operator.shortName) freight sighting",
+                    "\(sighting.railOperator.shortName) freight sighting",
                     coordinate: sighting.coordinate.mapCoordinate
                 ) {
                     FreightSightingMarker(sighting: sighting)

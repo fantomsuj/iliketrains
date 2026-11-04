@@ -35,7 +35,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
             RailSegment(
                 id: "northeast-corridor",
                 name: "Northeast Corridor",
-                operator: .amtrak,
+                railOperator: .amtrak,
                 kind: .intercity,
                 coordinates: coordinates([
                     (42.3601, -71.0589), (41.3083, -72.9279), (40.7128, -74.0060),
@@ -53,7 +53,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
             RailSegment(
                 id: "california-zephyr",
                 name: "California Zephyr",
-                operator: .amtrak,
+                railOperator: .amtrak,
                 kind: .intercity,
                 coordinates: coordinates([
                     (37.7949, -122.2822), (39.5296, -119.8138), (40.7608, -111.8910),
@@ -70,7 +70,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
             RailSegment(
                 id: "brightline-florida",
                 name: "Brightline Florida",
-                operator: .brightline,
+                railOperator: .brightline,
                 kind: .intercity,
                 coordinates: coordinates([
                     (25.7617, -80.1918), (26.1224, -80.1373), (26.3683, -80.1289),
@@ -87,7 +87,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
             RailSegment(
                 id: "bnsf-southern-transcon",
                 name: "Southern Transcon",
-                operator: .bnsf,
+                railOperator: .bnsf,
                 kind: .freightMainline,
                 coordinates: coordinates([
                     (34.8958, -117.0173), (34.4264, -117.3106), (35.1983, -111.6513),
@@ -100,7 +100,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
             RailSegment(
                 id: "up-sunset-route",
                 name: "Sunset Route",
-                operator: .unionPacific,
+                railOperator: .unionPacific,
                 kind: .freightMainline,
                 coordinates: coordinates([
                     (34.0522, -118.2437), (33.4484, -112.0740), (32.2226, -110.9747),
@@ -113,7 +113,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
             RailSegment(
                 id: "pacific-surfliner",
                 name: "LOSSAN Corridor",
-                operator: .amtrak,
+                railOperator: .amtrak,
                 kind: .intercity,
                 coordinates: coordinates([
                     (32.7157, -117.1611), (33.1959, -117.3795), (33.5019, -117.6628),
@@ -145,7 +145,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
     }
 
     private func train(
-        _ id: String, _ number: String, _ name: String, _ operator: RailOperator,
+        _ id: String, _ number: String, _ name: String, _ railOperator: RailOperator,
         _ origin: String, _ destination: String, _ latitude: Double, _ longitude: Double,
         _ heading: Double, _ speed: Int, _ delay: Int, _ nextStop: String, _ nextStopCode: String,
         _ etaMinutes: TimeInterval, _ updatedMinutesAgo: TimeInterval, _ status: Train.Status
@@ -154,7 +154,7 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
             id: id,
             number: number,
             name: name,
-            operator: operator,
+            railOperator: railOperator,
             origin: origin,
             destination: destination,
             coordinate: .init(latitude: latitude, longitude: longitude),
@@ -170,13 +170,13 @@ public struct MockRailDataService: TrainProviding, RailInfrastructureProviding, 
     }
 
     private func sighting(
-        _ id: String, _ operator: RailOperator, _ latitude: Double, _ longitude: Double,
+        _ id: String, _ railOperator: RailOperator, _ latitude: Double, _ longitude: Double,
         _ direction: String, _ equipment: String, _ confidence: Double,
         _ minutesAgo: TimeInterval, _ reporterCount: Int
     ) -> FreightSighting {
         FreightSighting(
             id: id,
-            operator: operator,
+            railOperator: railOperator,
             coordinate: .init(latitude: latitude, longitude: longitude),
             direction: direction,
             equipment: equipment,

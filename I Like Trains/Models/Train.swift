@@ -8,6 +8,7 @@ public enum RailOperator: String, Codable, CaseIterable, Identifiable, Sendable 
     case unionPacific
     case csx
     case norfolkSouthern
+    case canadianNational
     case canadianPacificKansasCity
 
     public var id: Self { self }
@@ -21,6 +22,7 @@ public enum RailOperator: String, Codable, CaseIterable, Identifiable, Sendable 
         case .unionPacific: "Union Pacific"
         case .csx: "CSX"
         case .norfolkSouthern: "Norfolk Southern"
+        case .canadianNational: "Canadian National"
         case .canadianPacificKansasCity: "CPKC"
         }
     }
@@ -30,8 +32,17 @@ public enum RailOperator: String, Codable, CaseIterable, Identifiable, Sendable 
         case .bnsf: "BNSF"
         case .unionPacific: "UP"
         case .norfolkSouthern: "NS"
+        case .canadianNational: "CN"
         case .canadianPacificKansasCity: "CPKC"
         default: displayName
+        }
+    }
+
+    /// Whether this operator runs freight (as opposed to passenger) trains.
+    public var isFreightRailroad: Bool {
+        switch self {
+        case .amtrak, .brightline, .metrolink: false
+        default: true
         }
     }
 }
@@ -56,7 +67,7 @@ public struct Train: Identifiable, Codable, Hashable, Sendable {
     public let id: String
     public let number: String
     public let name: String
-    public let operator: RailOperator
+    public let railOperator: RailOperator
     public let origin: String
     public let destination: String
     public let coordinate: RailCoordinate
@@ -73,7 +84,7 @@ public struct Train: Identifiable, Codable, Hashable, Sendable {
         id: String,
         number: String,
         name: String,
-        operator: RailOperator,
+        railOperator: RailOperator,
         origin: String,
         destination: String,
         coordinate: RailCoordinate,
@@ -89,7 +100,7 @@ public struct Train: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.number = number
         self.name = name
-        self.operator = operator
+        self.railOperator = railOperator
         self.origin = origin
         self.destination = destination
         self.coordinate = coordinate

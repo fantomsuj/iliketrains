@@ -46,13 +46,13 @@ public final class RailMapViewModel {
     public var filteredTrains: [Train] {
         guard layers.passengerTrains else { return [] }
         return trains.filter { train in
-            let matchesOperator = selectedOperator == nil || train.operator == selectedOperator
+            let matchesOperator = selectedOperator == nil || train.railOperator == selectedOperator
             let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !query.isEmpty else { return matchesOperator }
             let searchable = [
                 train.number,
                 train.name,
-                train.operator.displayName,
+                train.railOperator.displayName,
                 train.origin,
                 train.destination,
                 train.nextStop
@@ -64,7 +64,7 @@ public final class RailMapViewModel {
     public var visibleSegments: [RailSegment] {
         guard layers.infrastructure else { return [] }
         guard let selectedOperator else { return segments }
-        return segments.filter { $0.operator == nil || $0.operator == selectedOperator }
+        return segments.filter { $0.railOperator == nil || $0.railOperator == selectedOperator }
     }
 
     public var visibleStations: [RailStation] {
@@ -78,7 +78,7 @@ public final class RailMapViewModel {
     public var visibleSightings: [FreightSighting] {
         guard layers.freightSightings else { return [] }
         guard let selectedOperator else { return sightings }
-        return sightings.filter { $0.operator == selectedOperator }
+        return sightings.filter { $0.railOperator == selectedOperator }
     }
 
     public var selectedTrain: Train? {

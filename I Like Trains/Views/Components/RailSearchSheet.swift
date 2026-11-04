@@ -18,15 +18,15 @@ struct RailSearchSheet: View {
                             HStack(spacing: 14) {
                                 Image(systemName: "train.side.front.car")
                                     .font(.title3.bold())
-                                    .foregroundStyle(train.operator.tint)
+                                    .foregroundStyle(train.railOperator.tint)
                                     .frame(width: 38, height: 38)
-                                    .background(train.operator.tint.opacity(0.12), in: Circle())
+                                    .background(train.railOperator.tint.opacity(0.12), in: Circle())
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(train.name)
                                         .font(.headline)
                                         .foregroundStyle(.primary)
-                                    Text("\(train.operator.shortName) \(train.number)  •  \(train.origin) → \(train.destination)")
+                                    Text("\(train.railOperator.shortName) \(train.number)  •  \(train.origin) → \(train.destination)")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)

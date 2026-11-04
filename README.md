@@ -14,6 +14,7 @@ A tactile, map-first rail tracker for iOS. I Like Trains combines the live opera
 - Operator and layer filters
 - Spring-animated train selection and a status card with next stop, ETA, speed, delay, and freshness
 - Native locate, compass, scale, sheets, menus, Dynamic Type, VoiceOver labels, reduced-motion behavior, and iOS 17 haptics
+- **Routes explorer**: pick any city and see every passenger service and every Class I freight railroad that leaves it, drawn as coloured route trees with a legend. Pick a second city to see the direct trains and single-railroad freight routes between them, with track mileage. Built from real federal rail data (see below).
 - SwiftUI previews and XCTest coverage for the provider and view-model layers
 - Reproducible signal-orange app icon source
 
@@ -76,6 +77,10 @@ protocol FreightSightingProviding {
 ```
 
 `RailMapViewModel` accepts each provider independently. One production adapter can implement several protocols, or each feed can have a separate client. Feed DTOs never need to leak into SwiftUI.
+
+## Route data
+
+The Routes screen uses real data, not mocks. `scripts/route_atlas/build.py` traces 49 passenger services and the networks of BNSF, Union Pacific, CSX, Norfolk Southern, CN and CPKC across the BTS/FRA North American Rail Network (about 300,000 track segments), and writes `I Like Trains/Data/route-atlas.json`. See [scripts/route_atlas/README.md](scripts/route_atlas/README.md) for sources, method and caveats.
 
 ## Replacing mocks with real data
 

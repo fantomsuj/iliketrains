@@ -77,6 +77,16 @@ def main() -> None:
     except ElementTree.ParseError as error:
         fail(f"shared scheme is invalid XML: {error}")
 
+    atlas_path = ROOT / "I Like Trains" / "Data" / "route-atlas.json"
+    if not atlas_path.exists():
+        fail("route atlas data is missing; run scripts/route_atlas/build.py")
+    atlas = json.loads(atlas_path.read_text(encoding="utf-8"))
+    for key in ("cities", "passengerRoutes", "freightTrack", "freightNetworks", "freightPairs"):
+        if not atlas.get(key):
+            fail(f"route atlas has no {key}")
+    if pbx.count("route-atlas.json in Resources") != 2:
+        fail("route-atlas.json must be in the app's Copy Bundle Resources phase")
+
     tests = "\n".join(path.read_text(encoding="utf-8") for path in test_sources)
     for expected in ("MockRailDataService", "RailMapViewModel", "refresh", "filteredTrains"):
         if expected not in tests:

@@ -33,10 +33,10 @@ final class RailMapViewModelTests: XCTestCase {
         XCTAssertEqual(model.filteredTrains.map(\.name), ["California Zephyr"])
 
         model.searchQuery = "Miami"
-        XCTAssertEqual(model.filteredTrains.map(\.operator), [.brightline])
+        XCTAssertEqual(model.filteredTrains.map(\.railOperator), [.brightline])
 
         model.searchQuery = "Amtrak"
-        XCTAssertTrue(model.filteredTrains.allSatisfy { $0.operator == .amtrak })
+        XCTAssertTrue(model.filteredTrains.allSatisfy { $0.railOperator == .amtrak })
     }
 
     func testOperatorAndLayerFiltersAreIndependent() async {
@@ -44,7 +44,7 @@ final class RailMapViewModelTests: XCTestCase {
         await model.load()
 
         model.selectedOperator = .brightline
-        XCTAssertTrue(model.filteredTrains.allSatisfy { $0.operator == .brightline })
+        XCTAssertTrue(model.filteredTrains.allSatisfy { $0.railOperator == .brightline })
 
         model.layers.infrastructure = false
         model.layers.stations = false
