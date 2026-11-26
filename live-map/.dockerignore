@@ -1,0 +1,9 @@
+**/node_modules
+**/.DS_Store
+server/data/gtfs
+server/data/state
+tiles/dist
+ios
+web
+figures
+docs

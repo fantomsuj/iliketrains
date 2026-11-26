@@ -25,7 +25,7 @@ npm install
 npm run fetch:gtfs                  # static timetables for all four railroads (~100 MB unpacked)
 npm run build:routes                # snap every timetable route onto OSM track (~2 min)
 npm run demo                        # replays the recorded evening in server/data/demo/
-open http://localhost:8787          # browser preview of the network map (development aid)
+open http://localhost:8787          # the web app (web/), served by the dev server; installable as a PWA
 
 # 3. iOS app
 cd ../ios
@@ -34,6 +34,10 @@ open Trains.xcodeproj               # run on an iOS 17+ simulator
 ```
 
 Live mode is `npm start` instead of `npm run demo`. Node 22 runs the TypeScript sources directly (type stripping), so there is no build step.
+
+The web app in `web/` is a static, installable PWA (manifest, icons, offline service worker, phone
+layout). In production it is hosted on Vercel and talks to the live server on Railway; see
+[DEPLOY.md](DEPLOY.md) for the setup and for what still needs doing before a public launch.
 
 On a device, set `TRAINS_SERVER_URL` in `ios/project.yml` (or the `serverURL` user default) to your Mac's LAN address.
 
@@ -51,6 +55,8 @@ On a device, set `TRAINS_SERVER_URL` in `ios/project.yml` (or the `serverURL` us
 | `MTA_LIRR_URL`, `MTA_MNR_URL` | MTA public endpoints | no key needed |
 | `NJT_API_TOKEN` or `NJT_USERNAME` + `NJT_PASSWORD` | unset | NJ Transit GTFS-RT. Without them NJ Transit trains are shown from the timetable, labelled "Scheduled" |
 | `NJT_BASE_URL` | `https://raildata.njtransit.com/api/GTFSRT` | NJ Transit developer API |
+| `ALLOWED_ORIGINS` | unset (any) | comma-separated browser origins allowed to call the API and open `/live`, e.g. the Vercel app's URL |
+| `MAX_LIVE_CLIENTS` | `5000` | open WebSocket/SSE clients before new ones are refused |
 | `TILES_URL` | this server | public URL of `trains.pmtiles` on the CDN |
 | `GLYPHS_URL` | Protomaps font CDN | label fonts for the map style |
 | `TRAINS_DATA_DIR` | `server/data/state` | run history database (`history.sqlite`) |

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { stripTypeScriptTypes } from 'node:module';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { config } from './config.ts';
-import { cors, safeJoin, sendFile, sendJson } from './http.ts';
+import { cors, originAllowed, safeJoin, sendFile, sendJson } from './http.ts';
 import { RouteIndex } from './routes.ts';
 import { Engine, type Broadcast } from './live/engine.ts';
 import { TileServer } from './tiles.ts';
@@ -32,7 +32,7 @@ function styleJson(req: http.IncomingMessage, url: URL) {
 const sseClients = new Set<http.ServerResponse>();
 
 const server = http.createServer((req, res) => {
-  cors(res);
+  cors(res, req.headers.origin, config.allowedOrigins);
   if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
   const url = new URL(req.url ?? '/', 'http://x');
   const p = url.pathname;
@@ -83,6 +83,7 @@ const server = http.createServer((req, res) => {
       return b ? sendJson(res, 200, b) : sendJson(res, 404, { error: 'unknown station' });
     }
     if (p === '/live/sse') {
+      if (sseClients.size >= config.maxLiveClients) return sendJson(res, 503, { error: 'too many live clients' });
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
       res.write(`event: snapshot\ndata: ${JSON.stringify(engine.snapshot())}\n\n`);
       sseClients.add(res); req.on('close', () => sseClients.delete(res));
@@ -94,13 +95,13 @@ const server = http.createServer((req, res) => {
       res.end(stripTypeScriptTypes(fs.readFileSync(path.join(config.root, 'src/motion.ts'), 'utf8')));
       return;
     }
-    // web preview (development aid; the product is the iOS app)
-    if (p === '/' || p === '/preview') return sendFile(req, res, path.join(config.root, 'public/index.html'), 0);
+    // the web app (web/); in production it is served from Vercel and only the API above is used
+    if (p === '/' || p === '/preview') return sendFile(req, res, path.join(config.webDir, 'index.html'), 0);
     if (p.startsWith('/vendor/')) {
       const f = safeJoin(path.join(config.root, 'node_modules'), p.slice('/vendor/'.length));
       return f ? sendFile(req, res, f, 86400) : sendJson(res, 400, { error: 'bad path' });
     }
-    const f = safeJoin(path.join(config.root, 'public'), p.slice(1));
+    const f = safeJoin(config.webDir, p.slice(1));
     if (f && fs.existsSync(f)) return sendFile(req, res, f, 0);
     sendJson(res, 404, { error: 'not found' });
   } catch (e) {
@@ -109,7 +110,10 @@ const server = http.createServer((req, res) => {
   }
 });
 
-const wss = new WebSocketServer({ server, path: '/live' });
+// Train updates are ~100-250 kB of JSON per feed poll; deflate (fast level) cuts what each open map
+// costs in bandwidth by ~8x, which matters for phones on cellular and for the host's egress bill.
+const perMessageDeflate = { zlibDeflateOptions: { level: 1 }, threshold: 1024 };
+const wss = new WebSocketServer({ server, path: '/live', perMessageDeflate, verifyClient: ({ origin }: { origin?: string }) => originAllowed(origin, config.allowedOrigins) && wss.clients.size < config.maxLiveClients });
 wss.on('connection', (ws: WebSocket) => { ws.send(JSON.stringify({ type: 'snapshot', ...engine.snapshot() })); });
 
 const broadcast: Broadcast = (msg) => {

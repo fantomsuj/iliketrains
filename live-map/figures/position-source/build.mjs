@@ -10,7 +10,7 @@
 // timetable-only. Distance since the report uses the server's default pace of 20 m/s.
 //
 // node build.mjs [--light]   writes position-source.html / position-source-light.html
-// (both are also written to server/public/figures/; the train card frames the light one with ?embed)
+// (both are also written to web/figures/; the train card frames the light one with ?embed)
 // Query string on the page: ?op=amtrak|mta|njt&age=<seconds>&fix=gps|predicted|timetable
 // pins the figure to one train's state (no tour).
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -510,10 +510,10 @@ const name = theme === "light" ? "position-source-light.html" : "position-source
 const page = k.pageHtml({ title: "Where is this train?", theme, body: `<style>${css}</style>${body}`, script: kitScript() + live });
 writeFileSync(join(HERE, name), page);
 console.log("wrote", name);
-// the map's train card frames the light page (served from server/public)
+// the map's train card frames the light page (served from web/)
 {
-  const served = join(HERE, "../../server/public/figures");
+  const served = join(HERE, "../../web/figures");
   mkdirSync(served, { recursive: true });
   writeFileSync(join(served, name), page);
-  console.log("wrote server/public/figures/" + name);
+  console.log("wrote web/figures/" + name);
 }
