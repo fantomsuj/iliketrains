@@ -4,6 +4,9 @@ import SwiftUI
 struct RailMapView: View {
     @Bindable var model: RailMapViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var ghostClock = GhostClock()
+    @State private var cameraTicker = MapCameraTicker()
     @State private var cameraPosition: MapCameraPosition = .region(Self.nationalRegion)
     @State private var isShowingSearch = false
     @State private var isShowingFilters = false
@@ -95,130 +98,159 @@ struct RailMapView: View {
 
     private var railMap: some View {
         MapReader { proxy in
-            Map(position: $cameraPosition, scope: mapScope) {
-                ForEach(model.visibleCorridors) { corridor in
-                    MapPolyline(coordinates: corridor.path.map(\.mapCoordinate))
-                        .stroke(corridor.level.tint, style: corridorStroke(for: corridor.level))
+            ZStack {
+                map(proxy: proxy)
+                if let simulator = model.ghostSimulator, model.layers.ghostTrains {
+                    GhostTrainLayer(
+                        simulator: simulator,
+                        corridorIDs: model.ghostCorridorIDs,
+                        bounds: model.ghostBounds,
+                        latitudeSpan: model.visibleRegion?.latitudeSpan ?? 38,
+                        timeScale: model.ghostTimeScale,
+                        isPaused: ghostTrainsFrozen,
+                        clock: ghostClock,
+                        camera: cameraTicker,
+                        proxy: proxy
+                    )
+                    .ignoresSafeArea()
+                    .transition(.opacity)
                 }
-
-                if let corridor = model.selectedCorridor {
-                    MapPolyline(coordinates: corridor.path.map(\.mapCoordinate))
-                        .stroke(
-                            Color.white,
-                            style: StrokeStyle(lineWidth: corridor.level.lineWidth + 7, lineCap: .round, lineJoin: .round)
-                        )
-                    MapPolyline(coordinates: corridor.path.map(\.mapCoordinate))
-                        .stroke(
-                            corridor.level == .unmeasured ? RailTheme.railInk : corridor.level.tint,
-                            style: StrokeStyle(lineWidth: corridor.level.lineWidth + 3, lineCap: .round, lineJoin: .round)
-                        )
-                }
-
-                ForEach(model.visibleSegments) { segment in
-                    MapPolyline(coordinates: segment.coordinates.map(\.mapCoordinate))
-                        .stroke(
-                            segment.railOperator?.tint ?? RailTheme.railInk.opacity(0.72),
-                            style: StrokeStyle(
-                                lineWidth: lineWidth(for: segment),
-                                lineCap: .round,
-                                lineJoin: .round
-                            )
-                        )
-                }
-
-                ForEach(model.visibleStations) { station in
-                    Annotation(station.name, coordinate: station.coordinate.mapCoordinate, anchor: .bottom) {
-                        VStack(spacing: 2) {
-                            Circle()
-                                .fill(RailTheme.railInk)
-                                .frame(width: 9, height: 9)
-                                .overlay(Circle().stroke(RailTheme.parchment, lineWidth: 2))
-                            Text(station.code)
-                                .font(.system(size: 9, weight: .black, design: .rounded))
-                                .foregroundStyle(RailTheme.railInk)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(.ultraThinMaterial, in: Capsule())
-                        }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(station.name), \(station.city)")
-                    }
-                }
-
-                ForEach(model.visibleTerminals) { terminal in
-                    Annotation(terminal.name, coordinate: terminal.coordinate.mapCoordinate) {
-                        Button {
-                            model.toggleFreight(.terminal(terminal.id))
-                        } label: {
-                            IntermodalTerminalMarker(
-                                terminal: terminal,
-                                isSelected: model.selectedFreight == .terminal(terminal.id)
-                            )
-                        }
-                        .buttonStyle(.pressable)
-                    }
-                    .annotationTitles(.hidden)
-                }
-
-                ForEach(model.visibleYards) { yard in
-                    Annotation(yard.name, coordinate: yard.coordinate.mapCoordinate) {
-                        Button {
-                            model.toggleFreight(.yard(yard.id))
-                        } label: {
-                            YardDwellMarker(yard: yard, isSelected: model.selectedFreight == .yard(yard.id))
-                        }
-                        .buttonStyle(.pressable)
-                    }
-                    .annotationTitles(.hidden)
-                }
-
-                ForEach(model.visibleSightings) { sighting in
-                    Annotation(
-                        "\(sighting.railOperator.shortName) freight sighting",
-                        coordinate: sighting.coordinate.mapCoordinate
-                    ) {
-                        FreightSightingMarker(sighting: sighting)
-                    }
-                }
-
-                ForEach(model.filteredTrains) { train in
-                    Annotation(train.name, coordinate: train.coordinate.mapCoordinate) {
-                        Button {
-                            model.selectTrain(train)
-                        } label: {
-                            TrainMarker(train: train, isSelected: model.selectedTrainID == train.id)
-                        }
-                        .buttonStyle(.pressable)
-                    }
-                }
-
-                UserAnnotation()
             }
-            .mapStyle(
-                .standard(
-                    elevation: .flat,
-                    emphasis: .muted,
-                    pointsOfInterest: .excludingAll,
-                    showsTraffic: false
-                )
-            )
-            .mapControls {
-                MapCompass(scope: mapScope)
-                MapScaleView(scope: mapScope)
-            }
-            .onMapCameraChange(frequency: .onEnd) { context in
-                let region = context.region
-                model.visibleRegion = RailBounds(
-                    center: RailCoordinate(latitude: region.center.latitude, longitude: region.center.longitude),
-                    latitudeDelta: region.span.latitudeDelta,
-                    longitudeDelta: region.span.longitudeDelta
-                )
-            }
-            .onTapGesture { location in
-                handleMapTap(at: location, proxy: proxy)
-            }
-            .ignoresSafeArea()
         }
+    }
+
+    /// Ghost trains stand still when paused, with Reduce Motion on, or while the app isn't in front.
+    private var ghostTrainsFrozen: Bool {
+        model.ghostTrainsPaused || reduceMotion || scenePhase != .active
+    }
+
+    private func map(proxy: MapProxy) -> some View {
+        Map(position: $cameraPosition, scope: mapScope) {
+            ForEach(model.visibleCorridors) { corridor in
+                MapPolyline(coordinates: corridor.path.map(\.mapCoordinate))
+                    .stroke(corridor.level.tint, style: corridorStroke(for: corridor.level))
+            }
+
+            if let corridor = model.selectedCorridor {
+                MapPolyline(coordinates: corridor.path.map(\.mapCoordinate))
+                    .stroke(
+                        Color.white,
+                        style: StrokeStyle(lineWidth: corridor.level.lineWidth + 7, lineCap: .round, lineJoin: .round)
+                    )
+                MapPolyline(coordinates: corridor.path.map(\.mapCoordinate))
+                    .stroke(
+                        corridor.level == .unmeasured ? RailTheme.railInk : corridor.level.tint,
+                        style: StrokeStyle(lineWidth: corridor.level.lineWidth + 3, lineCap: .round, lineJoin: .round)
+                    )
+            }
+
+            ForEach(model.visibleSegments) { segment in
+                MapPolyline(coordinates: segment.coordinates.map(\.mapCoordinate))
+                    .stroke(
+                        segment.railOperator?.tint ?? RailTheme.railInk.opacity(0.72),
+                        style: StrokeStyle(
+                            lineWidth: lineWidth(for: segment),
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+
+            ForEach(model.visibleStations) { station in
+                Annotation(station.name, coordinate: station.coordinate.mapCoordinate, anchor: .bottom) {
+                    VStack(spacing: 2) {
+                        Circle()
+                            .fill(RailTheme.railInk)
+                            .frame(width: 9, height: 9)
+                            .overlay(Circle().stroke(RailTheme.parchment, lineWidth: 2))
+                        Text(station.code)
+                            .font(.system(size: 9, weight: .black, design: .rounded))
+                            .foregroundStyle(RailTheme.railInk)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(station.name), \(station.city)")
+                }
+            }
+
+            ForEach(model.visibleTerminals) { terminal in
+                Annotation(terminal.name, coordinate: terminal.coordinate.mapCoordinate) {
+                    Button {
+                        model.toggleFreight(.terminal(terminal.id))
+                    } label: {
+                        IntermodalTerminalMarker(
+                            terminal: terminal,
+                            isSelected: model.selectedFreight == .terminal(terminal.id)
+                        )
+                    }
+                    .buttonStyle(.pressable)
+                }
+                .annotationTitles(.hidden)
+            }
+
+            ForEach(model.visibleYards) { yard in
+                Annotation(yard.name, coordinate: yard.coordinate.mapCoordinate) {
+                    Button {
+                        model.toggleFreight(.yard(yard.id))
+                    } label: {
+                        YardDwellMarker(yard: yard, isSelected: model.selectedFreight == .yard(yard.id))
+                    }
+                    .buttonStyle(.pressable)
+                }
+                .annotationTitles(.hidden)
+            }
+
+            ForEach(model.visibleSightings) { sighting in
+                Annotation(
+                    "\(sighting.railOperator.shortName) freight sighting",
+                    coordinate: sighting.coordinate.mapCoordinate
+                ) {
+                    FreightSightingMarker(sighting: sighting)
+                }
+            }
+
+            ForEach(model.filteredTrains) { train in
+                Annotation(train.name, coordinate: train.coordinate.mapCoordinate) {
+                    Button {
+                        model.selectTrain(train)
+                    } label: {
+                        TrainMarker(train: train, isSelected: model.selectedTrainID == train.id)
+                    }
+                    .buttonStyle(.pressable)
+                }
+            }
+
+            UserAnnotation()
+        }
+        .mapStyle(
+            .standard(
+                elevation: .flat,
+                emphasis: .muted,
+                pointsOfInterest: .excludingAll,
+                showsTraffic: false
+            )
+        )
+        .mapControls {
+            MapCompass(scope: mapScope)
+            MapScaleView(scope: mapScope)
+        }
+        .onMapCameraChange(frequency: .continuous) { _ in
+            cameraTicker.tick &+= 1
+        }
+        .onMapCameraChange(frequency: .onEnd) { context in
+            let region = context.region
+            model.visibleRegion = RailBounds(
+                center: RailCoordinate(latitude: region.center.latitude, longitude: region.center.longitude),
+                latitudeDelta: region.span.latitudeDelta,
+                longitudeDelta: region.span.longitudeDelta
+            )
+        }
+        .onTapGesture { location in
+            handleMapTap(at: location, proxy: proxy)
+        }
+        .ignoresSafeArea()
     }
 
     /// Lines can't be tapped directly in MapKit for SwiftUI, so a tap on open map picks the nearest drawn
@@ -306,6 +338,17 @@ struct RailMapView: View {
                 Divider()
                     .overlay(RailTheme.railInk.opacity(0.12))
                 freightLegend(atlas)
+                if model.layers.ghostTrains, model.ghostSimulator != nil {
+                    Divider()
+                        .overlay(RailTheme.railInk.opacity(0.12))
+                    GhostTrainLegendRow(
+                        trainsOnScreen: model.ghostTrainsInView,
+                        timeScale: model.ghostTimeScale,
+                        clock: ghostClock,
+                        isPaused: $model.ghostTrainsPaused,
+                        reduceMotion: reduceMotion
+                    )
+                }
             } else if let error = model.freightAtlasError {
                 Text(error)
                     .font(.caption.weight(.semibold))

@@ -12,12 +12,14 @@ public struct RailLayerVisibility: Equatable, Sendable {
     public var intermodalTerminals = true
     /// Each Class I railroad's largest yards with last week's dwell time.
     public var yardDwell = true
+    /// Simulated trains moving along each line at its typical-day frequency.
+    public var ghostTrains = true
 
     public init() {}
 
     /// How many layers are switched off.
     public var hiddenCount: Int {
-        [passengerTrains, infrastructure, stations, freightSightings, trafficDensity, intermodalTerminals, yardDwell]
+        [passengerTrains, infrastructure, stations, freightSightings, trafficDensity, intermodalTerminals, yardDwell, ghostTrains]
             .filter { !$0 }
             .count
     }
@@ -58,6 +60,10 @@ public final class RailMapViewModel {
     public private(set) var segments: [RailSegment] = []
     public private(set) var sightings: [FreightSighting] = []
     public private(set) var freightAtlas: FreightAtlas?
+    /// Built once the freight atlas loads.
+    public private(set) var ghostSimulator: GhostTrainSimulator?
+    /// Ghost trains freeze in place while paused.
+    public var ghostTrainsPaused = false
     /// Set when the freight atlas fails to load; the rest of the map still works.
     public private(set) var freightAtlasError: String?
     public private(set) var loadState: LoadState = .idle
@@ -171,16 +177,43 @@ public final class RailMapViewModel {
     /// Freight corridors to draw: on screen, busy enough for the zoom, and matching the operator filter.
     /// Quieter lines come first so busier ones draw on top.
     public var visibleCorridors: [FreightCorridor] {
-        guard layers.trafficDensity, let freightAtlas else { return [] }
+        guard layers.trafficDensity else { return [] }
+        return corridorsInView(padding: 0.1).sorted { $0.level < $1.level }
+    }
+
+    /// Corridors that should carry ghost trains: the same lines the traffic layer would draw at this zoom,
+    /// whether or not the traffic colours are on. Padded so trains are already moving just off screen.
+    public var ghostCorridorIDs: Set<FreightCorridor.ID> {
+        guard layers.ghostTrains, ghostSimulator != nil else { return [] }
+        return Set(corridorsInView(padding: 0.5).map(\.id))
+    }
+
+    /// The box ghost trains are kept within, half a screen beyond the edges.
+    public var ghostBounds: RailBounds? {
+        visibleRegion?.padded(by: (visibleRegion?.latitudeSpan ?? 0) * 0.5)
+    }
+
+    /// About how many simulated trains are on the lines currently on screen.
+    public var ghostTrainsInView: Int {
+        guard layers.ghostTrains, let ghostSimulator else { return 0 }
+        let total = corridorsInView(padding: 0).reduce(0.0) { $0 + ghostSimulator.expectedTrainsOnLine($1.id) }
+        return Int(total.rounded())
+    }
+
+    /// How many times faster than real time ghost trains run at the current zoom.
+    public var ghostTimeScale: Double {
+        GhostTrainSimulator.timeScale(forLatitudeSpan: visibleRegion?.latitudeSpan ?? 38)
+    }
+
+    private func corridorsInView(padding: Double) -> [FreightCorridor] {
+        guard let freightAtlas else { return [] }
         let minimum = minimumVisibleLevel
-        let screen = visibleRegion?.padded(by: (visibleRegion?.latitudeSpan ?? 0) * 0.1)
-        return freightAtlas.corridors
-            .filter { corridor in
-                corridor.level >= minimum
-                    && (selectedOperator == nil || corridor.railroad == selectedOperator)
-                    && (screen.map { corridor.bounds.intersects($0) } ?? true)
-            }
-            .sorted { $0.level < $1.level }
+        let screen = visibleRegion?.padded(by: (visibleRegion?.latitudeSpan ?? 0) * padding)
+        return freightAtlas.corridors.filter { corridor in
+            corridor.level >= minimum
+                && (selectedOperator == nil || corridor.railroad == selectedOperator)
+                && (screen.map { corridor.bounds.intersects($0) } ?? true)
+        }
     }
 
     public var visibleTerminals: [IntermodalTerminal] {
@@ -253,7 +286,11 @@ public final class RailMapViewModel {
     private func loadFreightAtlasIfNeeded() async {
         guard freightAtlas == nil, let freightAtlasProvider else { return }
         do {
-            freightAtlas = try await freightAtlasProvider.freightAtlas()
+            let atlas = try await freightAtlasProvider.freightAtlas()
+            freightAtlas = atlas
+            ghostSimulator = GhostTrainSimulator(corridors: atlas.corridors) { railroad in
+                atlas.service(for: railroad)?.systemSpeedMPH
+            }
             freightAtlasError = nil
         } catch {
             freightAtlasError = "Freight data couldn't load. Trains and routes still work."
