@@ -50,3 +50,49 @@ extension RailOperator {
         }
     }
 }
+
+extension TrafficLevel {
+    /// A warm sequential ramp from sand to deep red, readable over the muted parchment map.
+    var tint: Color {
+        switch self {
+        case .unmeasured: Color(red: 0.55, green: 0.53, blue: 0.50).opacity(0.55)
+        case .light: Color(red: 0.84, green: 0.74, blue: 0.52)
+        case .moderate: Color(red: 0.97, green: 0.71, blue: 0.16)
+        case .busy: Color(red: 0.96, green: 0.52, blue: 0.10)
+        case .heavy: Color(red: 0.91, green: 0.30, blue: 0.09)
+        case .veryHeavy: Color(red: 0.74, green: 0.12, blue: 0.13)
+        case .extreme: Color(red: 0.45, green: 0.04, blue: 0.20)
+        }
+    }
+
+    var lineWidth: CGFloat {
+        switch self {
+        case .unmeasured: 1.4
+        case .light: 1.8
+        case .moderate: 2.4
+        case .busy: 3.2
+        case .heavy: 4.2
+        case .veryHeavy: 5.2
+        case .extreme: 6.2
+        }
+    }
+}
+
+enum DwellTheme {
+    /// Under a day reads as fluid, over 30 hours as congested.
+    static func tint(hours: Double) -> Color {
+        switch hours {
+        case ..<20: Color(red: 0.10, green: 0.62, blue: 0.52)
+        case ..<30: Color(red: 0.93, green: 0.60, blue: 0.08)
+        default: Color(red: 0.86, green: 0.26, blue: 0.20)
+        }
+    }
+
+    static func label(hours: Double) -> String {
+        switch hours {
+        case ..<20: "Fluid"
+        case ..<30: "Typical"
+        default: "Congested"
+        }
+    }
+}

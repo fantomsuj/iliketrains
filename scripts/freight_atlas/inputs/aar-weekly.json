@@ -1,0 +1,22 @@
+{
+  "source": "Association of American Railroads, Weekly Rail Traffic (U.S.), week 46 of 2026",
+  "url": "https://www.aar.org/wp-content/uploads/2026/11/2026-11-25-railtraffic.pdf",
+  "week": 46,
+  "weekEnded": "2026-11-21",
+  "note": "U.S. traffic; excludes U.S. operations of CPKC, CN and GMXT. Change is versus the same week of 2025.",
+  "totalCarloads": {"count": 235148, "changePercent": 0.5},
+  "intermodalUnits": {"count": 304963, "changePercent": 8.3},
+  "totalTraffic": {"count": 540111, "changePercent": 4.7},
+  "commodities": [
+    {"name": "Coal", "carloads": 59753, "changePercent": -4.4},
+    {"name": "Chemicals", "carloads": 33387, "changePercent": 2.1},
+    {"name": "Nonmetallic minerals", "carloads": 31912, "changePercent": -0.9},
+    {"name": "Metallic ores & metals", "carloads": 24445, "changePercent": 17.9},
+    {"name": "Grain", "carloads": 21401, "changePercent": -17.4},
+    {"name": "Farm products & food", "carloads": 18132, "changePercent": 6.2},
+    {"name": "Motor vehicles & parts", "carloads": 17033, "changePercent": 8.3},
+    {"name": "Petroleum products", "carloads": 11783, "changePercent": 11.2},
+    {"name": "Other", "carloads": 8694, "changePercent": -2.1},
+    {"name": "Forest products", "carloads": 8608, "changePercent": 11.0}
+  ]
+}

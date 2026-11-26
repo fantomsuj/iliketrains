@@ -1,0 +1,123 @@
+{
+  "source": "Surface Transportation Board, EP 724 weekly rail service filings (files dated 2026-11-18)",
+  "url": "https://www.stb.gov/reports-data/rail-service-data/",
+  "weekBegan": "2026-11-07",
+  "weekEnded": "2026-11-13",
+  "note": "Terminal coordinates are approximate (city or yard level) and were added by hand; the STB filings name terminals but do not locate them.",
+  "railroads": [
+    {
+      "railroad": "bnsf",
+      "speedMPH": {"intermodal": 30.4, "grain": 25.0, "coal": 22.4, "automotive": 25.0, "crudeOil": 24.0, "ethanol": 22.9, "manifest": 22.7, "system": 25.3},
+      "systemDwellHours": 22.3,
+      "carsOnline": 247017,
+      "trainsHeldPerDay": 22.5,
+      "terminals": [
+        {"name": "Barstow, CA", "lat": 34.858, "lon": -117.075, "dwellHours": 37.7},
+        {"name": "Denver, CO", "lat": 39.775, "lon": -104.975, "dwellHours": 28.2},
+        {"name": "Fort Worth, TX", "lat": 32.870, "lon": -97.360, "dwellHours": 26.2},
+        {"name": "Galesburg, IL", "lat": 40.937, "lon": -90.390, "dwellHours": 27.4},
+        {"name": "Kansas City, KS", "lat": 39.075, "lon": -94.660, "dwellHours": 27.5},
+        {"name": "Lincoln, NE", "lat": 40.800, "lon": -96.680, "dwellHours": 27.3},
+        {"name": "Memphis, TN", "lat": 35.040, "lon": -90.000, "dwellHours": 20.1},
+        {"name": "Northtown, MN", "lat": 45.060, "lon": -93.240, "dwellHours": 28.6},
+        {"name": "Pasco, WA", "lat": 46.240, "lon": -119.100, "dwellHours": 24.4},
+        {"name": "Tulsa, OK", "lat": 36.100, "lon": -96.030, "dwellHours": 25.8}
+      ]
+    },
+    {
+      "railroad": "unionPacific",
+      "speedMPH": {"intermodal": 31.0, "grain": 23.4, "coal": 25.7, "automotive": 25.7, "crudeOil": 25.5, "ethanol": 21.4, "manifest": 22.3, "system": 24.8},
+      "systemDwellHours": 19.6,
+      "carsOnline": 298985,
+      "trainsHeldPerDay": 15,
+      "terminals": [
+        {"name": "Chicago (Proviso), IL", "lat": 41.890, "lon": -87.880, "dwellHours": 20.0},
+        {"name": "Fort Worth, TX", "lat": 32.780, "lon": -97.370, "dwellHours": 20.6},
+        {"name": "Houston (Englewood), TX", "lat": 29.780, "lon": -95.300, "dwellHours": 18.9},
+        {"name": "Livonia, LA", "lat": 30.560, "lon": -91.550, "dwellHours": 19.0},
+        {"name": "North Little Rock, AR", "lat": 34.780, "lon": -92.240, "dwellHours": 19.4},
+        {"name": "North Platte West, NE", "lat": 41.150, "lon": -100.830, "dwellHours": 17.9},
+        {"name": "Pine Bluff, AR", "lat": 34.210, "lon": -92.000, "dwellHours": 20.7},
+        {"name": "Roseville, CA", "lat": 38.750, "lon": -121.300, "dwellHours": 19.0},
+        {"name": "Santa Teresa, NM", "lat": 31.860, "lon": -106.660, "dwellHours": 18.1},
+        {"name": "West Colton, CA", "lat": 34.050, "lon": -117.400, "dwellHours": 22.7}
+      ]
+    },
+    {
+      "railroad": "csx",
+      "speedMPH": {"intermodal": 30.2, "grain": 21.9, "coal": 21.7, "crudeOil": 25.9, "ethanol": 25.5, "manifest": 21.9, "system": 24.1},
+      "systemDwellHours": 22.72,
+      "carsOnline": 186433,
+      "trainsHeldPerDay": 3.0,
+      "terminals": [
+        {"name": "Baltimore, MD", "lat": 39.270, "lon": -76.600, "dwellHours": 11.98},
+        {"name": "Chicago, IL", "lat": 41.650, "lon": -87.620, "dwellHours": 8.06},
+        {"name": "Cincinnati, OH", "lat": 39.110, "lon": -84.540, "dwellHours": 27.56},
+        {"name": "Indianapolis, IN", "lat": 39.760, "lon": -86.380, "dwellHours": 24.84},
+        {"name": "Jacksonville, FL", "lat": 30.380, "lon": -81.730, "dwellHours": 24.66},
+        {"name": "Louisville, KY", "lat": 38.170, "lon": -85.780, "dwellHours": 35.80},
+        {"name": "Nashville, TN", "lat": 36.080, "lon": -86.760, "dwellHours": 31.00},
+        {"name": "Selkirk, NY", "lat": 42.550, "lon": -73.820, "dwellHours": 37.36},
+        {"name": "Toledo, OH", "lat": 41.620, "lon": -83.480, "dwellHours": 30.28},
+        {"name": "Waycross, GA", "lat": 31.210, "lon": -82.370, "dwellHours": 37.46}
+      ]
+    },
+    {
+      "railroad": "norfolkSouthern",
+      "speedMPH": {"intermodal": 26.1, "grain": 20.4, "coal": 19.4, "automotive": 22.3, "crudeOil": 25.7, "ethanol": 20.3, "manifest": 17.9, "system": 21.0},
+      "systemDwellHours": 24.6,
+      "carsOnline": 169029,
+      "trainsHeldPerDay": 17,
+      "terminals": [
+        {"name": "Atlanta, GA", "lat": 33.800, "lon": -84.440, "dwellHours": 24.2},
+        {"name": "Bellevue, OH", "lat": 41.270, "lon": -82.830, "dwellHours": 35.1},
+        {"name": "Birmingham, AL", "lat": 33.560, "lon": -86.760, "dwellHours": 29.1},
+        {"name": "Chattanooga, TN", "lat": 35.030, "lon": -85.250, "dwellHours": 29.6},
+        {"name": "Conway, PA", "lat": 40.660, "lon": -80.240, "dwellHours": 36.2},
+        {"name": "Decatur, IL", "lat": 39.840, "lon": -88.950, "dwellHours": 31.3},
+        {"name": "Elkhart, IN", "lat": 41.680, "lon": -85.930, "dwellHours": 29.9},
+        {"name": "Harrisburg, PA", "lat": 40.280, "lon": -76.810, "dwellHours": 9.9},
+        {"name": "Macon, GA", "lat": 32.810, "lon": -83.680, "dwellHours": 25.8},
+        {"name": "Roanoke, VA", "lat": 37.270, "lon": -79.970, "dwellHours": 31.7}
+      ]
+    },
+    {
+      "railroad": "canadianNational",
+      "speedMPH": {"intermodal": 27.45, "grain": 22.89, "coal": 19.59, "crudeOil": 23.99, "ethanol": 24.63, "manifest": 23.25, "system": 23.54},
+      "systemDwellHours": 15.7,
+      "carsOnline": 38473,
+      "trainsHeldPerDay": 2.3,
+      "terminals": [
+        {"name": "Baton Rouge, LA", "lat": 30.450, "lon": -91.170, "dwellHours": 16.78},
+        {"name": "Champaign, IL", "lat": 40.120, "lon": -88.240, "dwellHours": 13.43},
+        {"name": "Fond du Lac, WI", "lat": 43.770, "lon": -88.450, "dwellHours": 21.19},
+        {"name": "Geismar, LA", "lat": 30.210, "lon": -91.000, "dwellHours": 18.43},
+        {"name": "Jackson, MS", "lat": 32.300, "lon": -90.180, "dwellHours": 17.06},
+        {"name": "Kirk Yard (Gary), IN", "lat": 41.600, "lon": -87.400, "dwellHours": 22.88},
+        {"name": "Markham (Homewood), IL", "lat": 41.590, "lon": -87.680, "dwellHours": 11.44},
+        {"name": "Memphis, TN", "lat": 35.070, "lon": -90.050, "dwellHours": 19.70},
+        {"name": "Proctor, MN", "lat": 46.750, "lon": -92.230, "dwellHours": 7.27},
+        {"name": "Stevens Point, WI", "lat": 44.520, "lon": -89.570, "dwellHours": 20.80}
+      ]
+    },
+    {
+      "railroad": "canadianPacificKansasCity",
+      "speedMPH": {"intermodal": 28.4, "grain": 21.0, "coal": 20.1, "automotive": 23.3, "crudeOil": 21.1, "ethanol": 24.4, "manifest": 21.7, "system": 22.7},
+      "systemDwellHours": 19.6,
+      "carsOnline": 51520,
+      "trainsHeldPerDay": 5,
+      "terminals": [
+        {"name": "Bensenville, IL", "lat": 41.950, "lon": -87.940, "dwellHours": 22.7},
+        {"name": "Harvey, ND", "lat": 47.770, "lon": -99.930, "dwellHours": 13.9},
+        {"name": "Jackson, MS", "lat": 32.290, "lon": -90.200, "dwellHours": 31.1},
+        {"name": "Kansas City, MO", "lat": 39.120, "lon": -94.530, "dwellHours": 27.5},
+        {"name": "Laredo, TX", "lat": 27.530, "lon": -99.490, "dwellHours": 5.3},
+        {"name": "Meridian, MS", "lat": 32.360, "lon": -88.700, "dwellHours": 4.5},
+        {"name": "Nahant (Davenport), IA", "lat": 41.530, "lon": -90.660, "dwellHours": 20.6},
+        {"name": "New Orleans, LA", "lat": 29.950, "lon": -90.100, "dwellHours": 9.4},
+        {"name": "Shreveport, LA", "lat": 32.450, "lon": -93.800, "dwellHours": 29.6},
+        {"name": "St. Paul, MN", "lat": 44.930, "lon": -93.050, "dwellHours": 20.9}
+      ]
+    }
+  ]
+}

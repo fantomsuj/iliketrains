@@ -14,6 +14,11 @@ A tactile, map-first rail tracker for iOS. I Like Trains combines the live opera
 - Operator and layer filters
 - Spring-animated train selection and a status card with next stop, ETA, speed, delay, and freshness
 - Native locate, compass, scale, sheets, menus, Dynamic Type, VoiceOver labels, reduced-motion behavior, and iOS 17 haptics
+- **Freight layers built from real public data**:
+  - *Traffic density*: every Class I main line coloured by typical-day freight trains, from about 166,000 FRA grade-crossing counts (passenger and transit trains subtracted). Lines thin out as you zoom out; tap any line for its count, timetable speed, main tracks and the crossings behind the number.
+  - *Intermodal ramps*: all 241 container and trailer terminals from BTS, shown once you zoom in.
+  - *Yard dwell*: each Class I railroad's ten largest yards with last week's average dwell from its STB filing, coloured fluid to congested.
+  - *Freight this week*: a sheet with AAR's weekly U.S. carloads and intermodal units by commodity, each railroad's STB service numbers (tap one to filter the map), the busiest lines, and every source with its date.
 - **Routes explorer**: pick any city and see every passenger service and every Class I freight railroad that leaves it, drawn as coloured route trees with a legend. Pick a second city to see the direct trains and single-railroad freight routes between them, with track mileage. Built from real federal rail data (see below).
 - SwiftUI previews and XCTest coverage for the provider and view-model layers
 - Reproducible signal-orange app icon source
@@ -43,10 +48,11 @@ The domain layer also has a Swift Package test harness:
 swift test
 ```
 
-For a platform-independent project-graph audit:
+For a platform-independent project-graph audit, and the freight pipeline's unit tests:
 
 ```sh
 python3 scripts/validate_project.py
+python3 scripts/freight_atlas/test_build.py
 ```
 
 ## Architecture
@@ -81,6 +87,10 @@ protocol FreightSightingProviding {
 ## Route data
 
 The Routes screen uses real data, not mocks. `scripts/route_atlas/build.py` traces 49 passenger services and the networks of BNSF, Union Pacific, CSX, Norfolk Southern, CN and CPKC across the BTS/FRA North American Rail Network (about 300,000 track segments), and writes `I Like Trains/Data/route-atlas.json`. See [scripts/route_atlas/README.md](scripts/route_atlas/README.md) for sources, method and caveats.
+
+## Freight data
+
+The freight layers come from `I Like Trains/Data/freight-atlas.json`, built by `scripts/freight_atlas/build.py` from the FRA crossing inventory, the route atlas's Class I track, BTS intermodal terminals, the STB's weekly EP 724 filings, and AAR's weekly traffic report. None of it is live: there is no public freight GPS feed. See [scripts/freight_atlas/README.md](scripts/freight_atlas/README.md) for the method, caveats and weekly refresh.
 
 ## Replacing mocks with real data
 

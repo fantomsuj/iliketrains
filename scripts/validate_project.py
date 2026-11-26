@@ -87,8 +87,20 @@ def main() -> None:
     if pbx.count("route-atlas.json in Resources") != 2:
         fail("route-atlas.json must be in the app's Copy Bundle Resources phase")
 
+    freight_path = ROOT / "I Like Trains" / "Data" / "freight-atlas.json"
+    if not freight_path.exists():
+        fail("freight atlas data is missing; run scripts/freight_atlas/build.py")
+    freight = json.loads(freight_path.read_text(encoding="utf-8"))
+    for key in ("sources", "tierBounds", "corridors", "terminals", "service", "volume"):
+        if not freight.get(key):
+            fail(f"freight atlas has no {key}")
+    if pbx.count("freight-atlas.json in Resources") != 2:
+        fail("freight-atlas.json must be in the app's Copy Bundle Resources phase")
+    if 'Data/freight-atlas.json' not in (ROOT / "Package.swift").read_text(encoding="utf-8"):
+        fail("Package.swift must copy freight-atlas.json for the SwiftPM test harness")
+
     tests = "\n".join(path.read_text(encoding="utf-8") for path in test_sources)
-    for expected in ("MockRailDataService", "RailMapViewModel", "refresh", "filteredTrains"):
+    for expected in ("MockRailDataService", "RailMapViewModel", "refresh", "filteredTrains", "FreightAtlas", "visibleCorridors"):
         if expected not in tests:
             fail(f"expected data-layer test coverage marker missing: {expected}")
 

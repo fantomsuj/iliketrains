@@ -47,6 +47,31 @@ struct RailFilterSheet: View {
                 }
 
                 Section {
+                    LayerToggle(
+                        title: "Freight traffic",
+                        detail: "Typical-day trains per line, FRA crossing data",
+                        symbol: "chart.line.uptrend.xyaxis",
+                        isOn: $model.layers.trafficDensity
+                    )
+                    LayerToggle(
+                        title: "Intermodal ramps",
+                        detail: "Container and trailer terminals, BTS",
+                        symbol: "shippingbox.and.arrow.backward.fill",
+                        isOn: $model.layers.intermodalTerminals
+                    )
+                    LayerToggle(
+                        title: "Yard dwell",
+                        detail: "Hours cars waited last week, STB filings",
+                        symbol: "hourglass",
+                        isOn: $model.layers.yardDwell
+                    )
+                } header: {
+                    Text("Freight data")
+                } footer: {
+                    Text("Real public data, not live positions. No public feed shows where U.S. freight trains are right now.")
+                }
+
+                Section {
                     Label(
                         "Freight markers show reported sightings with confidence and age. They are not verified real-time positions.",
                         systemImage: "info.circle.fill"
