@@ -13,7 +13,7 @@ let package = Package(
             path: "I Like Trains",
             exclude: ["I_Like_TrainsApp.swift", "Resources", "Support", "Views"],
             sources: ["Models", "Services", "ViewModels"],
-            resources: [.copy("Data/route-atlas.json")]
+            resources: [.copy("Data/route-atlas.json"), .copy("Data/freight-atlas.json")]
         ),
         .testTarget(
             name: "ILikeTrainsDataTests",

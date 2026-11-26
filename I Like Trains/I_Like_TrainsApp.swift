@@ -9,7 +9,8 @@ struct I_Like_TrainsApp: App {
         _model = State(initialValue: RailMapViewModel(
             trainProvider: service,
             infrastructureProvider: service,
-            freightProvider: service
+            freightProvider: service,
+            freightAtlasProvider: BundledFreightAtlasService()
         ))
     }
 
