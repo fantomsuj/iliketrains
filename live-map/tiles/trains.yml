@@ -1,0 +1,103 @@
+# Planetiler custom schema for the Trains basemap.
+# Input is a railway-only OSM extract (see build.sh) plus coastline water polygons.
+# All layers here are OSM-derived (ODbL) except `water`, which is also OSM-derived
+# (osmdata.openstreetmap.de) and `lakes_lowzoom` (Natural Earth, public domain).
+schema_name: Trains
+schema_description: Passenger rail network of the US Northeast, from OpenStreetMap
+attribution: <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>
+args:
+  rail_path:
+    description: Railway-filtered OSM extract
+    default: data/rail.osm.pbf
+  water_path:
+    description: osmdata.openstreetmap.de water-polygons-split-4326.zip
+    default: data/sources/water-polygons-split-4326.zip
+  lakes_path:
+    description: Natural Earth 10m lakes
+    default: data/sources/ne_10m_lakes.zip
+sources:
+  osm:
+    type: osm
+    local_path: '${ args.rail_path }'
+  water:
+    type: shapefile
+    local_path: '${ args.water_path }'
+  lakes:
+    type: shapefile
+    local_path: '${ args.lakes_path }'
+layers:
+- id: water
+  features:
+  - source: [water, lakes]
+    geometry: polygon
+    min_zoom: 0
+  tile_post_process:
+    merge_polygons:
+      min_area: 1
+- id: rail
+  features:
+  - source: osm
+    geometry: line
+    include_when:
+      railway: [rail, light_rail, subway, narrow_gauge, preserved]
+    min_zoom:
+      default_value: 11
+      overrides:
+        4:
+          usage: main
+        6:
+          usage: branch
+        8:
+          railway: [light_rail, subway]
+          service: ''
+        12:
+          service: [siding, yard, spur, crossover]
+    attributes:
+    - key: railway
+    - key: usage
+    - key: service
+    - key: tunnel
+      value: '${ "tunnel" in feature.tags && feature.tags.tunnel != "no" }'
+      type: boolean
+    - key: name
+      min_zoom: 10
+    - key: electrified
+      min_zoom: 10
+  - source: osm
+    geometry: line
+    include_when:
+      railway: construction
+    min_zoom: 10
+    attributes:
+    - key: railway
+      value: construction
+- id: stations
+  features:
+  - source: osm
+    geometry: point
+    include_when:
+      railway: [station, halt]
+    exclude_when:
+      station: [subway, light_rail, monorail, funicular]
+    min_zoom: 7
+    attributes:
+    - key: name
+    - key: operator
+    - key: network
+    - key: railway
+- id: places
+  features:
+  - source: osm
+    geometry: point
+    include_when:
+      place: [city, town]
+    min_zoom:
+      default_value: 10
+      overrides:
+        5:
+          place: city
+    attributes:
+    - key: name
+    - key: place
+    - key: population
+      type: integer

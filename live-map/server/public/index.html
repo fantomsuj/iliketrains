@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trains — live network preview</title>
+<link rel="stylesheet" href="/vendor/maplibre-gl/dist/maplibre-gl.css">
+<style>
+  :root { --bg:#f3f1ec; --panel:#ffffff; --line:#ebebeb; --soft:#f6f6f4; --text:#111111; --dim:#8a8d93; --ontime:#2f9e44; --late:#e8890c; --bad:#e03131; --sched:#8a8d93;
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.12); --mono: "SF Mono", ui-monospace, Menlo, monospace; }
+  body.dark { --bg:#1b1c20; --panel:#232428; --line:#33353b; --soft:#2a2b30; --text:#f1f2f4; --dim:#9a9da5; --ontime:#40c057; --late:#f59f00; --bad:#fa5252; --sched:#9a9da5;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.45); color-scheme:dark; }
+  .pill.round { width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border:0; cursor:pointer; color:var(--text); }
+  .round svg { flex:none; } .round .sun, body.dark .round .moon { display:none; } body.dark .round .sun { display:block; }
+  body.dark .chip, body.dark .tag { border-color:#3a3c42; color:#a9acb3; }
+  body.dark .bar { background:#34363c; } body.dark .bar em { background:#f1f2f4; box-shadow:0 0 0 1px #000, 0 2px 6px rgba(0,0,0,.5); }
+  body.dark .day.none { background:#34363c !important; }
+  body.dark #ticker { background:linear-gradient(transparent, rgba(27,28,32,.95) 45%); } body.dark #ticker .ev b { color:#c9ccd2; }
+  body.dark .maplibregl-ctrl-attrib { background:rgba(35,36,40,.7) !important; } body.dark .maplibregl-ctrl-attrib a { color:#9a9da5; }
+  body.dark .x { box-shadow:0 0 0 1px var(--line); }
+  body.dark .car.loco { background:#8a8d93 !important; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font: 15px/1.4 -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  #map { position:absolute; inset:0; }
+  .maplibregl-ctrl-attrib { background:rgba(255,255,255,.7) !important; font-size:10px; }
+
+  /* top-left controls */
+  .hud { position:absolute; top:16px; left:16px; display:flex; gap:10px; align-items:center; }
+  .pill { background:var(--panel); border-radius:999px; padding:10px 16px; box-shadow:var(--shadow); font-size:14px; }
+  .pill b { font-variant-numeric: tabular-nums; }
+  .live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--ontime); margin-right:8px; vertical-align:1px; animation: pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity:.35 } }
+  #search { background:var(--panel); border:0; color:var(--text); border-radius:999px; padding:11px 18px; width:260px; outline:none; box-shadow:var(--shadow); font:inherit; font-size:14px; }
+  #search::placeholder { color:var(--dim); }
+  #results { position:absolute; top:62px; left:16px; width:340px; background:var(--panel); border-radius:20px; display:none; overflow:hidden; box-shadow:var(--shadow); }
+  #results div { padding:12px 18px; cursor:pointer; border-bottom:1px solid var(--line); }
+  #results div:last-child { border-bottom:0; }
+  #results div:hover { background:var(--soft); }
+
+  /* event ticker: quiet, along the bottom edge */
+  #ticker { position:absolute; left:0; right:0; bottom:0; height:30px; background:linear-gradient(transparent, rgba(243,241,236,.95) 45%); display:flex; align-items:center; overflow:hidden; font: 11px/1 var(--mono); color:var(--dim); }
+  #ticker .track { white-space:nowrap; display:flex; gap:38px; padding-left:100%; animation: scroll linear infinite; }
+  #ticker .ev b { color:#444; font-weight:500; }
+  @keyframes scroll { to { transform: translateX(-100%); } }
+
+  /* the card: a white sheet floating over the map */
+  #panel { position:absolute; right:16px; top:16px; bottom:40px; width:390px; box-sizing:border-box; background:var(--panel); border-radius:28px; padding:26px 26px 32px; overflow:auto; display:none; box-shadow:var(--shadow); scrollbar-width:thin; }
+  .x { position:sticky; top:0; float:right; width:40px; height:40px; margin:-6px -6px 0 8px; border-radius:50%; background:var(--panel); box-shadow:0 0 0 1px var(--line), 0 2px 8px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text); font-size:22px; font-weight:300; z-index:2; }
+  .chips { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .chip, .tag { font: 12px/1 var(--mono); padding:5px 8px; border:1px solid #e1e1e1; border-radius:7px; color:#6f7278; white-space:nowrap; background:var(--panel); }
+  .tag { margin-left:8px; font-size:11px; padding:3px 6px; vertical-align:2px; }
+  .op { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .big { font-size:30px; font-weight:700; letter-spacing:-.025em; line-height:1.15; margin:2px 0 2px; }
+  .status { font-size:16px; font-weight:600; margin-top:6px; }
+  .ontime { color:var(--ontime) } .late { color:var(--late) } .bad { color:var(--bad) } .sched { color:var(--sched) }
+  .ends { display:flex; justify-content:space-between; gap:16px; margin-top:20px; }
+  .ends .code { font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; } .ends .t { color:var(--dim); font-variant-numeric: tabular-nums; }
+  .bar { position:relative; height:6px; background:#ececea; border-radius:3px; margin:12px 0 6px; }
+  .bar i { position:absolute; left:0; top:0; bottom:0; border-radius:3px; background:var(--ontime); }
+  .bar em { position:absolute; top:-5px; width:16px; height:16px; margin-left:-8px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px #d8d8d8, 0 2px 6px rgba(0,0,0,.18); }
+
+  /* section headings, Flighty style: bold title, quiet subtitle */
+  h4, .st-h { margin:30px 0 2px; font-size:21px; font-weight:700; letter-spacing:-.015em; text-transform:none; color:var(--text); }
+  .eq-sub, .st-sub { color:var(--dim); font-size:14px; margin-top:2px; }
+  .eq-name { font-size:17px; font-weight:600; }
+  hr.sep { border:0; border-top:1px solid var(--line); margin:22px -26px 0; }
+
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-variant-numeric: tabular-nums; }
+  td { padding:11px 2px; border-bottom:1px solid var(--line); vertical-align:top; }
+  td.time { white-space:nowrap; text-align:right; }
+  tr.past td { color:var(--dim); }
+  tr[onclick]:hover td { background:var(--soft); }
+  .raw { margin-top:20px; font-size:12px; } .raw a { color:var(--dim); }
+
+  /* equipment */
+  .cars { display:flex; gap:3px; margin-top:12px; overflow-x:auto; padding-bottom:16px; }
+  .car { flex:0 0 auto; width:30px; height:22px; border-radius:6px; position:relative; display:flex; align-items:center; justify-content:center; font-size:10px; color:#fff; font-weight:700; }
+  .car.loco { width:36px; border-radius:11px 6px 6px 11px; background:#5f6368 !important; }
+  .car.loco.rear { border-radius:6px 11px 11px 6px; }
+  .car span { position:absolute; top:25px; color:var(--dim); font-weight:500; white-space:nowrap; font-size:8px; font-variant-numeric:tabular-nums; }
+  .cars-legend { display:flex; gap:10px; font-size:12px; color:var(--dim); flex-wrap:wrap; }
+  .cars-legend i { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+
+  /* history */
+  .hist-stats { display:flex; gap:22px; margin-top:8px; } .hist-stats b { display:block; font-size:30px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; } .hist-stats small { color:var(--text); font-size:14px; }
+  .days { display:flex; gap:4px; margin-top:14px; align-items:flex-end; height:46px; }
+  .day { flex:1; border-radius:4px; min-height:6px; cursor:pointer; }
+  .day.flagged { background:repeating-linear-gradient(135deg, #cfcfcf 0 3px, transparent 3px 6px) !important; border:1px solid #d6d6d6; }
+  .day.none { background:#ececea !important; height:6px !important; }
+  .day-labels { display:flex; justify-content:space-between; color:var(--dim); font-size:11px; margin-top:6px; }
+  #daydetail { margin-top:10px; font-size:13px; color:var(--dim); min-height:16px; line-height:1.5; } #daydetail a { color:var(--dim); }
+
+  /* station card */
+  .st-status { margin-top:22px; border:1px solid var(--line); border-radius:18px; padding:18px; display:flex; gap:16px; align-items:center; }
+  .st-dot { flex:0 0 auto; width:12px; height:12px; border-radius:50%; margin:0 6px; }
+  .st-grid { display:grid; grid-template-columns:1fr 1fr; gap:26px 14px; margin-top:20px; }
+  .st-grid b { display:block; font-size:34px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; line-height:1.05; }
+  .st-grid small { display:block; font-size:15px; margin-top:4px; } .st-grid i { display:block; font-style:normal; color:var(--dim); font-size:12px; margin-top:2px; }
+  .st-bar { display:flex; gap:3px; margin-top:14px; }
+  .st-bar > div { min-width:26px; display:flex; flex-direction:column; border-left:2px solid var(--seg); padding-left:5px; }
+  .st-pct { font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; } .st-n { font-size:14px; color:var(--dim); font-variant-numeric:tabular-nums; margin-top:5px; }
+  .st-seg { height:26px; margin:4px 0 0 -7px; }
+  .st-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:12px; color:var(--dim); }
+  .st-legend i { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:6px; vertical-align:-1px; } .st-legend em { font-style:normal; opacity:.7; }
+  .st-dests { margin-top:10px; }
+  .st-dests > div { display:flex; align-items:center; gap:12px; padding:12px 8px; border-radius:10px; }
+  .st-dests > div:nth-child(even) { background:var(--soft); }
+  .st-dests .st-dn { flex:1; font-size:17px; } .st-dests b { font-size:17px; font-variant-numeric:tabular-nums; } .st-dests small { font-weight:700; font-size:12px; letter-spacing:.06em; text-transform:uppercase; width:52px; }
+  .trk { display:inline-block; background:#f8cf45; color:#1a1400; font-weight:700; font-size:12px; padding:3px 7px; border-radius:6px; margin-right:10px; vertical-align:1px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="hud">
+  <span class="pill"><span class="live-dot"></span><b id="count">0</b> trains <span id="mode" style="color:var(--dim)"></span></span>
+  <input id="search" placeholder="Train number or station" autocomplete="off">
+  <button id="theme" class="pill round" aria-label="Switch map theme"><svg class="moon" viewBox="0 0 24 24" width="18" height="18"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="currentColor"/></svg><svg class="sun" viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg></button>
+</div>
+<div id="results"></div>
+<div id="panel"></div>
+<div id="ticker"><div class="track" id="track"></div></div>
+
+<script src="/vendor/pmtiles/dist/pmtiles.js"></script>
+<script type="module">
+import * as maplibregl from '/vendor/maplibre-gl/dist/maplibre-gl.mjs';
+const { Protocol } = window.pmtiles;
+import { distanceAt, smoothStep } from '/lib/motion.js';
+
+maplibregl.addProtocol('pmtiles', new Protocol().tile);
+// light or dark: the reader's last choice, else the system setting
+let theme = localStorage.getItem('trains-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.body.classList.toggle('dark', theme === 'dark');
+const styleUrl = () => '/style.json' + (theme === 'dark' ? '?theme=dark' : '');
+// colours the app's own map layers use, per theme (the base map comes from the style)
+const THEMES = {
+  light: { stationFill: '#ffffff', stationEdge: '#6f7278', stationLabel: '#4a4d52', labelHalo: '#f3f1ec', trainLabel: '#111111', trainHalo: '#ffffff', trail: '60,64,70', trailAlpha: 0.45, glow: 0.07, hollow: '#ffffff' },
+  dark: { stationFill: '#1b1c20', stationEdge: '#a3a6ad', stationLabel: '#b7bac1', labelHalo: '#1b1c20', trainLabel: '#f1f2f4', trainHalo: '#1b1c20', trail: '225,228,234', trailAlpha: 0.5, glow: 0.16, hollow: '#1b1c20' },
+};
+const map = new maplibregl.Map({ container: 'map', style: styleUrl(), center: [-73.9, 40.85], zoom: 7.2, attributionControl: { compact: false } });
+window.__map = map;
+window.__trains = () => trains;
+
+// ---- geometry ----
+function decode(s) { const out = []; let i = 0, lat = 0, lon = 0;
+  const d = () => { let r = 0, sh = 0, b; do { b = s.charCodeAt(i++) - 63; r |= (b & 31) << sh; sh += 5; } while (b >= 32); return r & 1 ? ~(r >> 1) : r >> 1; };
+  while (i < s.length) { lat += d(); lon += d(); out.push([lon / 1e5, lat / 1e5]); } return out; }
+const R = 6371008.8, RAD = Math.PI / 180;
+function hav(a, b) { const dLat = (b[1]-a[1])*RAD, dLon = (b[0]-a[0])*RAD; const s = Math.sin(dLat/2)**2 + Math.cos(a[1]*RAD)*Math.cos(b[1]*RAD)*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.min(1, Math.sqrt(s))); }
+function line(coords) { const cum = [0]; for (let i = 1; i < coords.length; i++) cum.push(cum[i-1] + hav(coords[i-1], coords[i])); return { coords, cum, length: cum[cum.length-1] }; }
+function pointAt(l, d) { d = Math.max(0, Math.min(l.length, d)); let lo = 0, hi = l.cum.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (l.cum[m] <= d) lo = m; else hi = m; }
+  const a = l.coords[lo], b = l.coords[Math.min(lo + 1, l.coords.length - 1)], seg = l.cum[lo+1] - l.cum[lo] || 1, t = (d - l.cum[lo]) / seg;
+  return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]; }
+function bearingOf(a, b) {
+  const y = Math.sin((b[0] - a[0]) * RAD) * Math.cos(b[1] * RAD);
+  const x = Math.cos(a[1] * RAD) * Math.sin(b[1] * RAD) - Math.sin(a[1] * RAD) * Math.cos(b[1] * RAD) * Math.cos((b[0] - a[0]) * RAD);
+  return (Math.atan2(y, x) / RAD + 360) % 360; }
+// A train seen from above, nose up: rounded body in the line colour, dark windscreen, headlight,
+// white rim. A late train gets an amber or red rim; a train not yet running is hollow.
+function addTrainIcon(id) {
+  if (map.hasImage(id)) return;
+  const [, color, ring, sched, th] = id.split('|'); const hollow = THEMES[th || 'light'].hollow;
+  const k = 2, W = 26, H = 40, c = document.createElement('canvas'); c.width = W * k; c.height = H * k;
+  const g = c.getContext('2d'); g.scale(k, k);
+  const body = (inset) => { const x = 5 + inset, y = 3 + inset, w = W - 10 - inset * 2, h = H - 6 - inset * 2, r = w / 2;
+    g.beginPath(); g.moveTo(x, y + r); g.arc(x + r, y + r, r, Math.PI, 0); g.lineTo(x + w, y + h - 4); g.quadraticCurveTo(x + w, y + h, x + w - 4, y + h);
+    g.lineTo(x + 4, y + h); g.quadraticCurveTo(x, y + h, x, y + h - 4); g.closePath(); };
+  g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 3; body(-1.6); g.fillStyle = ring || '#ffffff'; g.fill(); g.shadowBlur = 0;
+  body(ring ? 0.6 : 0.2); g.fillStyle = sched ? hollow : color; g.fill();
+  if (sched) { body(1.8); g.strokeStyle = color; g.lineWidth = 1.6; g.stroke(); }
+  // windscreen
+  g.beginPath(); g.moveTo(8.5, 12); g.quadraticCurveTo(W / 2, 5.5, W - 8.5, 12); g.lineTo(W - 9, 14.5); g.quadraticCurveTo(W / 2, 11, 9, 14.5); g.closePath();
+  g.fillStyle = sched ? color : 'rgba(13,17,23,.85)'; g.fill();
+  // headlight and a roof line
+  g.beginPath(); g.arc(W / 2, 7.2, 1.3, 0, Math.PI * 2); g.fillStyle = '#fff7d6'; g.fill();
+  g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(W / 2 - 0.7, 18, 1.4, H - 25);
+  map.addImage(id, g.getImageData(0, 0, W * k, H * k), { pixelRatio: k });
+}
+function sliceLine(l, d0, d1) {
+  d0 = Math.max(0, d0); d1 = Math.min(l.length, d1);
+  const out = [pointAt(l, d0)];
+  for (let i = 0; i < l.cum.length; i++) if (l.cum[i] > d0 && l.cum[i] < d1) out.push(l.coords[i]);
+  out.push(pointAt(l, d1)); return out; }
+// The trail shows the track covered over the last TRAIL_S seconds at the train's current speed
+// (none while it stands at a station), so direction and motion read even when zoomed far out.
+const TRAIL_S = 180;
+const trailBack = (tr, s) => (s.status === 'enroute' && s.speedMps > 1 ? s.speedMps * TRAIL_S : 0);
+
+// ---- state ----
+const lines = new Map(); const pending = new Set();
+const trains = new Map(); // id -> { s: summary, shown: d, fade }
+let clockOffset = 0; // serverTime - Date.now()
+const now = () => Date.now() + clockOffset;
+let selected = null;
+
+// Track geometry is fetched a few at a time: hundreds of parallel requests make the browser
+// refuse some (ERR_INSUFFICIENT_RESOURCES), and a train without its track cannot glide.
+const shapeQueue = []; let shapesInFlight = 0; const SHAPE_PARALLEL = 6;
+function ensureShape(key) {
+  if (!key || lines.has(key) || pending.has(key)) return; pending.add(key); shapeQueue.push(key); pumpShapes();
+}
+function pumpShapes() {
+  while (shapesInFlight < SHAPE_PARALLEL && shapeQueue.length) {
+    const key = shapeQueue.shift(); shapesInFlight++;
+    fetch('/api/shapes/' + encodeURIComponent(key)).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((r) => { lines.set(key, line(decode(r.polyline))); pending.delete(key); })
+      .catch(() => setTimeout(() => { pending.delete(key); ensureShape(key); }, 3000)) // retry later
+      .finally(() => { shapesInFlight--; pumpShapes(); });
+  }
+}
+function applyTrains(list) { for (const s of list) { const t = trains.get(s.id); if (t) t.s = s; else trains.set(s.id, { s, shown: null }); ensureShape(s.shape); } }
+const lateClass = (s) => s.status === 'cancelled' ? 'bad' : s.source === 'scheduled' ? 'sched' : s.delaySec == null ? 'sched' : s.delaySec >= 900 ? 'bad' : s.delaySec >= 300 ? 'late' : 'ontime';
+const STATUS_COLOR = { ontime: '#3fb950', late: '#f0a33a', bad: '#f85149', sched: '#7d8a99' };
+
+// ---- live connection ----
+async function boot() {
+  const snap = await fetch('/api/snapshot').then((r) => r.json());
+  clockOffset = snap.serverTime - Date.now();
+  document.getElementById('mode').textContent = snap.demo ? '· demo replay' : '· live';
+  applyTrains(snap.trains); renderTicker(snap.events);
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/live');
+  ws.onmessage = (m) => { const msg = JSON.parse(m.data);
+    if (msg.serverTime) clockOffset = msg.serverTime - Date.now();
+    if (msg.type === 'trains') { applyTrains(msg.trains); for (const id of msg.removed) trains.delete(id); if (selected?.type === 'train') refreshPanel(); }
+    if (msg.type === 'event') pushEvent(msg.event);
+  };
+  ws.onclose = () => setTimeout(boot, 3000);
+}
+
+// ---- map layers ----
+let routesData = null, stationsData = null;
+function addAppLayers() {
+  const T = THEMES[theme];
+  map.addSource('routes', { type: 'geojson', data: routesData });
+  map.addLayer({ id: 'route-glow', type: 'line', source: 'routes', paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 5, 12, 12], 'line-blur': ['interpolate', ['linear'], ['zoom'], 6, 4, 12, 9], 'line-opacity': T.glow } }, 'places');
+  map.addLayer({ id: 'route-core', type: 'line', source: 'routes', paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1, 12, 2.2], 'line-opacity': 0.85 } }, 'places');
+  map.addSource('stations', { type: 'geojson', data: stationsData });
+  map.addLayer({ id: 'station-dots', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['+', 1, ['get', 'n']], 13, ['+', 3, ['*', 1.5, ['get', 'n']]]], 'circle-color': T.stationFill, 'circle-stroke-color': T.stationEdge, 'circle-stroke-width': 1.4 } });
+  // an invisible, larger target so stations are easy to tap
+  map.addLayer({ id: 'station-hit', type: 'circle', source: 'stations', minzoom: 8, paint: { 'circle-radius': 12, 'circle-opacity': 0 } });
+  map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', minzoom: 10, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': T.stationLabel, 'text-halo-color': T.labelHalo, 'text-halo-width': 1.2 } });
+  // trail: the stretch of track each moving train covered in the last few minutes, fading out behind it
+  map.addSource('train-trails', { type: 'geojson', lineMetrics: true, data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'train-trail', type: 'line', source: 'train-trails', layout: { 'line-cap': 'round' }, paint: {
+    'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 13, 5],
+    'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, `rgba(${T.trail},0)`, 1, `rgba(${T.trail},${T.trailAlpha})`] } });
+  map.addSource('live-trains', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'train-halo', type: 'circle', source: 'live-trains', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 7, 13, 16], 'circle-color': ['get', 'color'], 'circle-opacity': ['*', 0.22, ['get', 'opacity']], 'circle-blur': 0.7 } });
+  // each train is a small top-down train in its line's colour, nose pointing the way it travels
+  map.addLayer({ id: 'train-dot', type: 'symbol', source: 'live-trains', layout: {
+    'icon-image': ['get', 'icon'], 'icon-rotate': ['get', 'bearing'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map',
+    'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.42, 10, 0.7, 14, 1.05], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+    paint: { 'icon-opacity': ['get', 'opacity'] } });
+  map.addLayer({ id: 'train-label', type: 'symbol', source: 'live-trains', minzoom: 10, layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, -1.6], 'text-allow-overlap': false }, paint: { 'text-color': T.trainLabel, 'text-halo-color': T.trainHalo, 'text-halo-width': 1.2 } });
+}
+map.on('load', async () => {
+  const ov = await fetch('/api/routes').then((r) => r.json());
+  routesData = { type: 'FeatureCollection', features: ov.routes.map((r) => ({ type: 'Feature', properties: { color: r.color, operator: r.operator }, geometry: { type: 'LineString', coordinates: decode(r.polyline) } })) };
+  const stations = await fetch('/api/stations').then((r) => r.json());
+  stationsData = { type: 'FeatureCollection', features: stations.stations.map((s) => ({ type: 'Feature', properties: { id: s.id, name: s.name, n: s.operators.length }, geometry: { type: 'Point', coordinates: [s.lon, s.lat] } })) };
+  addAppLayers();
+  map.on('styleimagemissing', (e) => { if (e.id.startsWith('train|')) addTrainIcon(e.id); });
+  // layer event handlers are kept by the map, so they survive a theme switch
+  map.on('click', 'train-dot', (e) => openTrain(e.features[0].properties.id));
+  map.on('click', 'station-hit', (e) => { if (!map.queryRenderedFeatures(e.point, { layers: ['train-dot'] }).length) openStation(e.features[0].properties.id); });
+  for (const l of ['train-dot', 'station-hit']) { map.on('mouseenter', l, () => map.getCanvas().style.cursor = 'pointer'); map.on('mouseleave', l, () => map.getCanvas().style.cursor = ''); }
+  await boot();
+  requestAnimationFrame(frame);
+});
+function setTheme(next) {
+  theme = next; localStorage.setItem('trains-theme', theme);
+  document.body.classList.toggle('dark', theme === 'dark');
+  document.getElementById('theme').setAttribute('aria-label', theme === 'dark' ? 'Switch to light map' : 'Switch to dark map');
+  psFrame.src = psSrc(); psLoaded = false;
+  if (!routesData) return; // still loading; the first style load picks the theme up
+  map.once('style.load', addAppLayers);
+  map.setStyle(styleUrl(), { diff: false });
+}
+document.getElementById('theme').addEventListener('click', () => setTheme(theme === 'dark' ? 'light' : 'dark'));
+
+
+// ---- animation ----
+let last = performance.now();
+function frame(t) {
+  const dt = Math.min(0.25, (t - last) / 1000); last = t;
+  const feats = [], trails = []; const n = now();
+  for (const [id, tr] of trains) {
+    const s = tr.s; const l = lines.get(s.shape);
+    let coord;
+    if (l && s.plan) {
+      const target = distanceAt(s.plan, n);
+      if (tr.shown === null) tr.shown = target;
+      const r = smoothStep(tr.shown, target, dt);
+      if (r.snapped) tr.fade = 0; tr.shown = r.d;
+      coord = pointAt(l, tr.shown);
+      const ahead = pointAt(l, tr.shown + 60), behind = pointAt(l, tr.shown - 60);
+      if (ahead[0] !== behind[0] || ahead[1] !== behind[1]) tr.bearing = bearingOf(behind, ahead);
+      const back = trailBack(tr, s);
+      if (back > 30) trails.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: sliceLine(l, tr.shown - back, tr.shown) } });
+    } else if (!Number.isNaN(s.lat)) coord = [s.lon, s.lat];
+    else continue;
+    tr.fade = Math.min(1, (tr.fade ?? 1) + dt * 2);
+    const lc = lateClass(s), alert = lc === 'late' || lc === 'bad';
+    const icon = `train|${s.color}|${alert ? STATUS_COLOR[lc] : ''}|${s.source === 'scheduled' ? 's' : ''}|${theme}`;
+    if (!map.hasImage(icon)) addTrainIcon(icon); // add before use, so new icons draw on the first frame
+    feats.push({ type: 'Feature', properties: { id, color: s.color, status: STATUS_COLOR[lc], alert, scheduled: s.source === 'scheduled', opacity: tr.fade, label: s.trainNumber, icon, bearing: tr.bearing ?? s.bearing ?? 0 }, geometry: { type: 'Point', coordinates: coord } });
+  }
+  map.getSource('train-trails')?.setData({ type: 'FeatureCollection', features: trails });
+  map.getSource('live-trains')?.setData({ type: 'FeatureCollection', features: feats });
+  document.getElementById('count').textContent = feats.length;
+  if (selected?.type === 'train') tickPanel();
+  requestAnimationFrame(frame);
+}
+
+// ---- ticker ----
+let tickerEvents = [];
+function renderTicker(evs) { tickerEvents = evs.slice(0, 25); drawTicker(); }
+function pushEvent(e) { tickerEvents.unshift(e); tickerEvents = tickerEvents.slice(0, 25); drawTicker(); }
+function drawTicker() {
+  const el = document.getElementById('track');
+  el.innerHTML = tickerEvents.map((e) => `<span class="ev">${new Date(e.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} <b>${esc(e.text)}</b></span>`).join('');
+  el.style.animationDuration = Math.max(40, tickerEvents.length * 7) + 's';
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---- panels ----
+const panel = document.getElementById('panel');
+const hm = (ms) => ms == null ? '' : new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const late = (sec) => sec == null ? '' : Math.abs(sec) < 90 ? 'On time' : sec > 0 ? `${Math.round(sec / 60)} min late` : `${Math.round(-sec / 60)} min early`;
+async function openTrain(id) {
+  const t = await fetch('/api/trains/' + encodeURIComponent(id)).then((r) => r.json());
+  const fresh = selected?.id !== id; selected = { type: 'train', id, data: t }; renderTrain(t); panel.style.display = 'block'; if (fresh) panel.scrollTop = 0; loadHistory(t);
+  const l = lines.get(t.shape); if (l) map.easeTo({ center: [t.lon, t.lat], zoom: Math.max(map.getZoom(), 10), duration: 900 });
+}
+async function refreshPanel() { if (selected?.type === 'train') { const t = await fetch('/api/trains/' + encodeURIComponent(selected.id)).then((r) => r.ok ? r.json() : null); if (t) { selected.data = t; renderTrain(t); loadHistory(t); } } }
+// Amtrak's three-letter codes read well; other railroads' ids are numbers, so use a short name
+const endName = (t, s) => t.operator === 'amtrak' ? s.stationId : (s.name.length > 14 ? s.name.split(/[ -]/)[0] : s.name);
+function renderTrain(t) {
+  const cls = lateClass(t), first = t.stops[0], lastS = t.stops[t.stops.length - 1];
+  const eta = t.next?.eta ? Math.max(0, Math.round((t.next.eta - now()) / 60000)) : null;
+  if (!document.getElementById('tp-fig')) {
+    panel.innerHTML = `<div id="tp-head"></div><div id="tp-fig"><h4>How it's placed on the map</h4><div id="tp-fig-slot"></div>
+      <div class="eq-sub">Lamps, left to right: GPS, live stop times, timetable. The dial is the age of the last GPS report; past the pin it is no longer trusted. The counter is how far the train is assumed to have moved since.</div></div><div id="tp-rest"></div>`;
+    document.getElementById('tp-fig-slot').appendChild(psFrame);
+  }
+  psSend({ type: 'position-source', op: t.operator, fix: t.fix, gpsAt: t.gpsAt ?? null });
+  const [head, rest] = trainHtml(t, cls, first, lastS, eta).split('<!--split-->');
+  document.getElementById('tp-head').innerHTML = head;
+  document.getElementById('tp-rest').innerHTML = rest;
+}
+// ---- how the train is placed (an explainer figure following the selected train) ----
+const psFrame = document.createElement('iframe');
+const psSrc = () => `/figures/position-source${theme === 'dark' ? '' : '-light'}.html?embed`;
+psFrame.src = psSrc();
+psFrame.title = 'How this train is placed on the map';
+psFrame.style.cssText = 'width:100%;height:240px;border:0;display:block;border-radius:12px;background:transparent';
+let psLoaded = false, psLast = null;
+psFrame.addEventListener('load', () => { psLoaded = true; if (psLast) psFrame.contentWindow.postMessage(psLast, '*'); });
+function psSend(msg) { psLast = msg; if (psLoaded && psFrame.isConnected) psFrame.contentWindow.postMessage(msg, '*'); }
+addEventListener('message', (e) => { if (e.source === psFrame.contentWindow && e.data?.type === 'position-source:height') psFrame.style.height = e.data.height + 'px'; });
+function trainHtml(t, cls, first, lastS, eta) {
+  return `<span class="x" onclick="document.getElementById('panel').style.display='none'">×</span>
+    <div class="op">${esc(t.operator === 'amtrak' ? 'Amtrak' : t.operator.toUpperCase())} · ${esc(t.routeName)}</div>
+    <div class="big">${esc(t.trainNumber)} <span style="font-size:16px;font-weight:500;color:var(--dim)">to ${esc(t.destination)}</span></div>
+    <div class="status ${cls}">${t.status === 'cancelled' ? 'Cancelled' : t.source === 'scheduled' ? 'Scheduled (no live data)' : late(t.delaySec) || 'Tracking'}
+      <span class="tag">${t.fix === 'gps' ? 'GPS' : t.fix === 'predicted' ? 'Live times' : 'Timetable'}</span></div>
+    <div class="ends"><div><div class="code">${esc(endName(t, first))}</div><div class="t">${hm(first.estDep ?? first.schDep)}</div></div>
+      <div style="text-align:right"><div class="code">${esc(endName(t, lastS))}</div><div class="t">${hm(lastS.estArr ?? lastS.schArr)}</div></div></div>
+    <div class="bar"><i id="pbar" style="width:${(t.progress * 100).toFixed(1)}%;background:${STATUS_COLOR[cls]}"></i><em id="pdot" style="left:${(t.progress * 100).toFixed(1)}%"></em></div>
+    <div class="eq-sub" id="etaline">${t.next ? `Next stop ${esc(t.next.name)} in <b style="color:var(--text)">${eta ?? '?'} min</b>` : ''}</div><!--split-->
+    <h4>Equipment</h4><div id="equipment">${equipmentHtml(t)}</div>
+    <h4>Last 14 days</h4><div id="history"><div style="color:var(--dim)">Loading history…</div></div>
+    <h4>Stops</h4>
+    <table>${t.stops.map((s) => `<tr class="${s.status === 'departed' ? 'past' : ''}"><td>${esc(s.name)}${s.track ? `<span class="trk" style="margin:0 0 0 8px">${esc(s.track)}</span>` : ''}${s.status === 'skipped' ? '<span class="tag">skipped</span>' : ''}</td>
+      <td class="time">${s.schArr != null && s.estArr != null && Math.abs(s.estArr - s.schArr) > 90000 ? `<s style="color:var(--dim)">${hm(s.schArr)}</s> ` : ''}<span class="${s.status === 'departed' ? '' : cls}">${hm(s.estArr ?? s.schArr)}</span></td></tr>`).join('')}</table>
+    <div class="raw"><a href="/api/trains/${encodeURIComponent(t.id)}" target="_blank">Raw record</a></div>`;
+}
+// ---- equipment (live consist for LIRR / Metro-North, typical for Amtrak) ----
+const LOAD = { EMPTY: ['#3fb950', 'Plenty of seats'], MANY_SEATS: ['#3fb950', 'Many seats'], FEW_SEATS: ['#f0a33a', 'Few seats'], STANDING_ROOM_ONLY: ['#f85149', 'Standing room'], FULL: ['#f85149', 'Full'], NO_DATA: ['#c9c9c9', 'No sensor'] };
+function equipmentHtml(t) {
+  const e = t.equipment;
+  if (!e) return '<div style="color:var(--dim)">Not reported for this train yet.</div>';
+  if (!e.live) return `<div class="eq-name">${t.operator === 'amtrak' ? 'Typically ' : ''}${esc(e.summary)}</div><div class="eq-sub">${esc(e.detail)}</div>
+    <div class="eq-sub" style="margin-top:6px">${t.operator === 'amtrak' ? "Amtrak doesn't publish which equipment runs each train. " : ''}<a href="${esc(e.source)}" target="_blank" style="color:var(--dim)">Source</a></div>`;
+  const diff = e.carsRunning && e.carsScheduled && e.carsRunning !== e.carsScheduled
+    ? ` · <span style="color:${e.carsRunning > e.carsScheduled ? 'var(--ontime)' : 'var(--late)'}">${e.carsRunning > e.carsScheduled ? `${e.carsRunning - e.carsScheduled} extra` : `${e.carsScheduled - e.carsRunning} short`}</span>` : '';
+  const counted = e.cars.some((c) => c.passengers != null), riders = e.cars.reduce((a, c) => a + (c.passengers ?? 0), 0);
+  const locos = e.cars.filter((c) => c.locomotive);
+  const cars = e.cars.map((c, i) => {
+    const [col, label] = LOAD[c.loading] ?? ['#c9c9c9', c.loading];
+    const rear = c.locomotive && i === e.cars.length - 1 && i > 0;
+    const tip = `${c.model} ${c.number ?? ''}${c.locomotive ? ' (locomotive)' : ` · ${label}${c.passengers != null ? `, ${c.passengers} aboard` : ''}`}${c.restroom ? ' · restroom' : ''}`;
+    return `<div class="car ${c.locomotive ? 'loco' : ''} ${rear ? 'rear' : ''}" style="background:${col}" title="${esc(tip)}">${c.restroom ? '·' : ''}<span>${c.number ?? ''}</span></div>`;
+  }).join('');
+  return `<div class="eq-name">${esc(e.name)}</div>
+    <div class="eq-sub">${e.carsRunning ?? e.cars.length} cars${e.carsScheduled ? ` (${e.carsScheduled} scheduled)` : ''}${diff}${locos.length ? ` · ${locos.map((l) => `${esc(l.model)} ${l.number ?? ''}`).join(' + ')}` : ''}${counted ? ` · ${riders} aboard` : ''}</div>
+    ${e.cars.length ? `<div class="cars">${cars}</div><div class="cars-legend"><span>front first</span><span><i style="background:#3fb950"></i>seats free</span><span><i style="background:#f0a33a"></i>few seats</span><span><i style="background:#f85149"></i>full</span><span><i style="background:#c9c9c9"></i>no sensor</span><span>· restroom</span></div>` : `<div class="eq-sub" style="margin-top:6px">The railroad didn't list the cars for this run.</div>`}
+    <div class="eq-sub" style="margin-top:6px">Live from the railroad · <a href="/api/trains/${encodeURIComponent(t.id)}/equipment/raw" target="_blank" style="color:var(--dim)">Raw record</a></div>`;
+}
+
+// ---- history (our own recording + the public Amtrak archive) ----
+async function loadHistory(t, retry = 0) {
+  const h = await fetch(`/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}`).then((r) => r.json());
+  const el = document.getElementById('history'); if (!el || selected?.id !== t.id) return;
+  const fmt = (m) => m == null ? '—' : Math.abs(m) <= 1 ? 'on time' : m > 0 ? `${m} min late` : `${-m} min early`;
+  const days = [...h.days].reverse();
+  const color = (d) => d.status === 'cancelled' ? '#f85149' : d.delayMin == null ? '#3a4654' : d.delayMin <= h.thresholdMin ? '#3fb950' : d.delayMin <= 15 ? '#f0a33a' : '#f85149';
+  const bars = days.map((d, i) => {
+    const none = d.status === 'unknown' || d.status === 'no_record' || (d.delayMin == null && d.status !== 'cancelled');
+    const ht = none ? 6 : d.status === 'cancelled' ? 46 : Math.max(12, Math.min(46, 16 + Math.max(0, d.delayMin) * 2));
+    return `<div class="day ${none ? 'none' : ''} ${!none && !d.scored ? 'flagged' : ''}" data-i="${i}" style="height:${ht}px;background:${color(d)}"></div>`;
+  }).join('');
+  el.innerHTML = `${h.scoredRuns ? `<div class="hist-stats"><div><b style="color:${h.onTimeRuns / h.scoredRuns >= 0.8 ? 'var(--ontime)' : 'var(--late)'}">${Math.round((h.onTimeRuns / h.scoredRuns) * 100)}%</b><small>on time (${h.onTimeRuns} of ${h.scoredRuns})</small></div>
+      <div><b>${fmt(h.avgDelayMin == null ? null : Math.round(h.avgDelayMin))}</b><small>average</small></div><div><b>${fmt(h.worstDelayMin)}</b><small>worst</small></div></div>`
+    : `<div style="color:var(--dim)">${h.backfilling ? 'Filling in past runs…' : 'No completed runs recorded yet.'}</div>`}
+    <div class="days">${bars}</div><div class="day-labels"><span>${days[0].date.slice(5)}</span><span>today</span></div>
+    <div id="daydetail">${h.note ? esc(h.note) + ' ' : ''}On time means within ${h.thresholdMin} min. Striped days aren't counted. Tap a day.</div>`;
+  el.querySelectorAll('.day').forEach((b) => b.addEventListener('click', () => {
+    const d = days[Number(b.dataset.i)];
+    const raw = `/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}/${d.date}/raw`;
+    document.getElementById('daydetail').innerHTML = `<b style="color:var(--text)">${d.date}</b> · ${d.status === 'no_record' ? 'did not run' : d.status === 'unknown' ? 'no record yet' : `${fmt(d.delayMin)}${d.measuredAt ? ` at ${esc(d.measuredAt)}` : ''}${d.status === 'running' ? ' (still running)' : ''}`}${d.flag && d.status !== 'no_record' ? ` · not counted: ${esc(d.flag)}` : ''}${d.consist ? `<br>${esc(d.consist)}` : ''}
+      ${d.source ? `<br><a href="${raw}" target="_blank">Raw record</a>${d.sourceUrl ? ` · <a href="${esc(d.sourceUrl)}" target="_blank">Open in archive</a>` : ''}` : ''}`;
+  }));
+  if (h.backfilling && retry < 6) setTimeout(() => loadHistory(t, retry + 1), 8000);
+}
+
+function tickPanel() {
+  const t = selected.data, tr = trains.get(t.id); if (!tr || !tr.s.plan) return;
+  const first = t.stops.find((s) => s.d >= 0), lastS = [...t.stops].reverse().find((s) => s.d >= 0); if (!first || !lastS) return;
+  const p = Math.max(0, Math.min(1, (tr.shown - first.d) / Math.max(1, lastS.d - first.d)));
+  const bar = document.getElementById('pbar'), dot = document.getElementById('pdot');
+  if (bar) bar.style.width = (p * 100).toFixed(2) + '%'; if (dot) dot.style.left = (p * 100).toFixed(2) + '%';
+}
+const hourLabel = (h) => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`;
+const OP_LABEL = { amtrak: 'Amtrak', lirr: 'LIRR', mnr: 'Metro-North', njt: 'NJ Transit' };
+const STATUS_TONE = { ok: 'var(--ontime)', minor: 'var(--late)', major: 'var(--bad)', unknown: 'var(--sched)' };
+async function openStation(id) {
+  const [b, st] = await Promise.all([
+    fetch(`/api/stations/${encodeURIComponent(id)}/board`).then((r) => r.json()),
+    fetch(`/api/stations/${encodeURIComponent(id)}/stats`).then((r) => r.ok ? r.json() : null)]);
+  selected = { type: 'station', id };
+  const rows = b.rows.filter((r) => r.kind === 'departure' && (r.estimated ?? r.scheduled) >= now() - 5 * 60000).slice(0, 40);
+  const localTime = new Date(now()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' });
+  const chips = [b.hub.id.startsWith('amtrak:') && st?.hub.code ? st.hub.code : null, localTime].filter(Boolean).map((c) => `<span class="chip">${esc(c)}</span>`).join('');
+  let stats = '';
+  if (st) {
+    const total = st.departures || 1, top = st.lines.slice(0, 4), other = st.lines.slice(4).reduce((a, l) => a + l.count, 0);
+    const segs = [...top.map((l) => ({ label: l.name, op: l.operator, color: l.color, count: l.count })), ...(other ? [{ label: 'Other', color: '#d5d5d2', count: other }] : [])];
+    const s = st.status;
+    stats = `<div class="st-status"><span class="st-dot" style="background:${STATUS_TONE[s.level]};box-shadow:0 0 0 5px color-mix(in srgb, ${STATUS_TONE[s.level]} 25%, transparent)"></span>
+        <div><div style="color:${STATUS_TONE[s.level]};font-weight:600;font-size:16px">${esc(s.text)}</div>
+        <div class="eq-sub">${s.liveSoon ? `${s.lateSoon} of ${s.liveSoon} live departures in the next hour ${s.lateSoon === 1 ? 'is' : 'are'} late or cancelled` : 'Status comes from live trains due in the next hour'}</div></div></div>
+      <div class="st-h">Station stats</div><div class="st-sub">This station by the numbers, today</div>
+      <div class="st-grid">
+        <div><b>${st.departures}</b><small>Departures</small><i>${st.remaining} still to go</i></div>
+        <div><b>${st.lines.length}</b><small>Lines</small><i>${st.hub.operators.map((o) => OP_LABEL[o] ?? o).join(' · ')}</i></div>
+        <div><b>${st.stationsServed}</b><small>Stations served</small><i>without changing trains</i></div>
+        <div><b>${st.busiestHour == null ? '–' : hourLabel(st.busiestHour)}</b><small>Busiest hour</small><i>${st.busiestHour == null ? '' : `${st.perHour[st.busiestHour]} departures`}</i></div>
+      </div>
+      <div class="st-h">Busiest lines</div>
+      <div class="st-bar">${segs.map((g) => `<div style="flex:${g.count};--seg:${esc(g.color)}" title="${esc(g.label)}: ${g.count} departures">
+          <span class="st-pct">${Math.round((g.count / total) * 100)}%</span><span class="st-seg" style="background:${esc(g.color)}"></span><span class="st-n">${g.count}</span></div>`).join('')}</div>
+      <div class="st-legend">${segs.map((g) => `<span><i style="background:${esc(g.color)}"></i>${esc(g.label)}${g.op && st.hub.operators.length > 1 ? ` <em>${esc(OP_LABEL[g.op] ?? g.op)}</em>` : ''}</span>`).join('')}</div>
+      <div class="st-h">Busiest destinations</div>
+      <div class="st-dests">${st.destinations.slice(0, 6).map((d) => `<div><span class="chip">${esc(OP_LABEL[d.operator] ?? d.operator)}</span><span class="st-dn">${esc(d.name)}</span><b>${d.count}</b><small>trains</small></div>`).join('')}</div>`;
+  }
+  panel.innerHTML = `<span class="x" onclick="document.getElementById('panel').style.display='none'">×</span>
+    <div class="chips">${chips}</div>
+    <div class="big">${esc(b.hub.name)}</div>
+    <div class="op" style="margin-top:2px">${b.hub.operators.map((o) => OP_LABEL[o] ?? o.toUpperCase()).join(' · ')}</div>
+    <hr class="sep">
+    ${stats}
+    <div class="st-h">Departures</div>
+    <table>${rows.map((r) => { const cls = r.status === 'Cancelled' ? 'bad' : r.source === 'scheduled' ? 'sched' : (r.delaySec ?? 0) >= 300 ? 'late' : 'ontime';
+      return `<tr style="cursor:${r.trainId ? 'pointer' : 'default'}" ${r.trainId ? `onclick="window.__openTrain('${esc(r.trainId)}')"` : ''}><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${esc(r.color)};margin-right:6px"></span><b>${esc(r.trainNumber)}</b> ${esc(r.destination)}<div style="color:var(--dim);font-size:12px">${esc(r.label)}</div></td>
+      <td class="time">${r.track ? `<span class="trk">${esc(r.track)}</span>` : ''}<b class="${cls}">${hm(r.estimated ?? r.scheduled)}</b><div class="${cls}" style="font-size:12px">${esc(r.status)}</div></td></tr>`; }).join('')}</table>
+    <div class="raw"><a href="/api/stations/${encodeURIComponent(id)}/stats" target="_blank">Raw stats</a> · <a href="/api/stations/${encodeURIComponent(id)}/board" target="_blank">Raw board</a></div>`;
+  panel.style.display = 'block'; panel.scrollTop = 0;
+  map.easeTo({ center: [b.hub.lon, b.hub.lat], zoom: Math.max(map.getZoom(), 12), duration: 900 });
+}
+window.__openTrain = openTrain; window.__openStation = openStation;
+
+// ---- search ----
+const input = document.getElementById('search'), results = document.getElementById('results');
+let timer;
+input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(async () => {
+  const q = input.value.trim(); if (!q) { results.style.display = 'none'; return; }
+  const r = await fetch('/api/search?q=' + encodeURIComponent(q)).then((r) => r.json());
+  results.innerHTML = [...r.trains.map((t) => `<div onclick="window.__openTrain('${esc(t.id)}')"><b>${esc(t.trainNumber)}</b> ${esc(t.routeName)} <span style="color:var(--dim)">to ${esc(t.destination)}</span></div>`),
+    ...r.stations.map((s) => `<div onclick="window.__openStation('${esc(s.id)}')">${esc(s.name)} <span style="color:var(--dim)">${s.operators.join(' · ')}</span></div>`)].join('') || '<div style="color:var(--dim)">No matches</div>';
+  results.style.display = 'block';
+}, 150); });
+results.addEventListener('click', () => { results.style.display = 'none'; });
+</script>
+</body>
+</html>

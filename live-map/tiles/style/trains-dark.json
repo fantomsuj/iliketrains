@@ -1,0 +1,47 @@
+{
+  "version": 8,
+  "name": "Trains Dark",
+  "metadata": {"note": "{{TILES_URL}} and {{GLYPHS_URL}} are substituted by the server at /style.json"},
+  "glyphs": "{{GLYPHS_URL}}",
+  "sources": {
+    "trains": {
+      "type": "vector",
+      "url": "pmtiles://{{TILES_URL}}",
+      "attribution": "<a href=\"https://www.openstreetmap.org/copyright\">&copy; OpenStreetMap contributors</a>"
+    }
+  },
+  "layers": [
+    {"id": "background", "type": "background", "paint": {"background-color": "#0d1117"}},
+    {"id": "water", "type": "fill", "source": "trains", "source-layer": "water",
+     "paint": {"fill-color": "#070a0f", "fill-antialias": true}},
+    {"id": "water-edge", "type": "line", "source": "trains", "source-layer": "water", "minzoom": 6,
+     "paint": {"line-color": "#18212c", "line-width": 0.6}},
+    {"id": "rail-service", "type": "line", "source": "trains", "source-layer": "rail",
+     "filter": ["has", "service"],
+     "paint": {"line-color": "#1f2933", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.4, 16, 1.2]}},
+    {"id": "rail-transit", "type": "line", "source": "trains", "source-layer": "rail",
+     "filter": ["all", ["!", ["has", "service"]], ["in", ["get", "railway"], ["literal", ["subway", "light_rail"]]]],
+     "paint": {"line-color": "#1c2530", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.4, 14, 1.4],
+               "line-dasharray": [2, 1]}},
+    {"id": "rail-branch", "type": "line", "source": "trains", "source-layer": "rail",
+     "filter": ["all", ["!", ["has", "service"]], ["in", ["get", "railway"], ["literal", ["rail", "narrow_gauge", "preserved"]]],
+                ["!=", ["get", "usage"], "main"]],
+     "paint": {"line-color": "#263240", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.4, 14, 1.6]}},
+    {"id": "rail-main", "type": "line", "source": "trains", "source-layer": "rail",
+     "filter": ["all", ["!", ["has", "service"]], ["==", ["get", "usage"], "main"]],
+     "paint": {"line-color": "#33414f", "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.5, 10, 1.4, 14, 2.4]}},
+    {"id": "places", "type": "symbol", "source": "trains", "source-layer": "places",
+     "layout": {"text-field": ["get", "name"], "text-font": ["Noto Sans Regular"],
+                "text-size": ["match", ["get", "place"], "city", 13, 11],
+                "text-transform": "uppercase", "text-letter-spacing": 0.12,
+                "symbol-sort-key": ["-", 0, ["coalesce", ["get", "population"], 0]]},
+     "paint": {"text-color": "#4b5866", "text-halo-color": "#0d1117", "text-halo-width": 1.2}},
+    {"id": "stations-osm", "type": "circle", "source": "trains", "source-layer": "stations", "minzoom": 10,
+     "paint": {"circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 1.5, 15, 4],
+               "circle-color": "#0d1117", "circle-stroke-color": "#55657a", "circle-stroke-width": 1}},
+    {"id": "stations-osm-label", "type": "symbol", "source": "trains", "source-layer": "stations", "minzoom": 12,
+     "layout": {"text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11,
+                "text-offset": [0, 1.1], "text-anchor": "top", "text-optional": true},
+     "paint": {"text-color": "#7d8a99", "text-halo-color": "#0d1117", "text-halo-width": 1.2}}
+  ]
+}
