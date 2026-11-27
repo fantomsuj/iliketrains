@@ -2,9 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trains — live network preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>I Like Trains — live map</title>
+<meta name="description" content="Every passenger train in the US Northeast, moving live on the real track: Amtrak, LIRR, Metro-North and NJ Transit.">
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1c20" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trains">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="/vendor/maplibre-gl/dist/maplibre-gl.css">
+<script src="/config.js"></script>
 <style>
   :root { --bg:#f3f1ec; --panel:#ffffff; --line:#ebebeb; --soft:#f6f6f4; --text:#111111; --dim:#8a8d93; --ontime:#2f9e44; --late:#e8890c; --bad:#e03131; --sched:#8a8d93;
     --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.12); --mono: "SF Mono", ui-monospace, Menlo, monospace; }
@@ -29,6 +41,7 @@
   .pill b { font-variant-numeric: tabular-nums; }
   .live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--ontime); margin-right:8px; vertical-align:1px; animation: pulse 2s infinite; }
   @keyframes pulse { 50% { opacity:.35 } }
+  body.stale .live-dot { background:var(--sched); animation:none; }
   #search { background:var(--panel); border:0; color:var(--text); border-radius:999px; padding:11px 18px; width:260px; outline:none; box-shadow:var(--shadow); font:inherit; font-size:14px; }
   #search::placeholder { color:var(--dim); }
   #results { position:absolute; top:62px; left:16px; width:340px; background:var(--panel); border-radius:20px; display:none; overflow:hidden; box-shadow:var(--shadow); }
@@ -106,6 +119,30 @@
   .st-dests > div:nth-child(even) { background:var(--soft); }
   .st-dests .st-dn { flex:1; font-size:17px; } .st-dests b { font-size:17px; font-variant-numeric:tabular-nums; } .st-dests small { font-weight:700; font-size:12px; letter-spacing:.06em; text-transform:uppercase; width:52px; }
   .trk { display:inline-block; background:#f8cf45; color:#1a1400; font-weight:700; font-size:12px; padding:3px 7px; border-radius:6px; margin-right:10px; vertical-align:1px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+
+  /* installed app and install hints */
+  .toast { position:absolute; left:50%; transform:translateX(-50%); bottom:calc(44px + env(safe-area-inset-bottom)); background:var(--panel); color:var(--text); border-radius:16px; padding:12px 14px 12px 18px; box-shadow:var(--shadow); font-size:14px; display:none; align-items:center; gap:12px; width:max-content; max-width:min(440px, calc(100vw - 32px)); box-sizing:border-box; z-index:5; }
+  .toast > span { flex:1; min-width:0; }
+  .toast.show { display:flex; }
+  .toast button { border:0; background:var(--soft); color:var(--text); font:inherit; font-weight:600; border-radius:10px; padding:7px 12px; cursor:pointer; white-space:nowrap; }
+  .toast button.quiet { background:none; color:var(--dim); font-weight:400; padding:7px 4px; }
+  .toast svg { flex:none; vertical-align:-3px; }
+  #install { display:none; } #install.show { display:flex; }
+
+  /* phones: controls span the top, cards become a bottom sheet, everything clears the notch and home bar */
+  @media (max-width: 640px) {
+    .hud { top:calc(env(safe-area-inset-top) + 10px); left:calc(env(safe-area-inset-left) + 10px); right:calc(env(safe-area-inset-right) + 10px); gap:8px; }
+    .hud .pill:first-child { padding:10px 12px; font-size:13px; white-space:nowrap; flex:none; }
+    #mode { display:none; } body.stale #mode { display:inline; }
+    #search { flex:1; min-width:0; width:auto; padding:11px 14px; font-size:16px; } /* 16px stops iOS zooming on focus */
+    #results { top:calc(env(safe-area-inset-top) + 60px); left:10px; right:10px; width:auto; max-height:60vh; overflow:auto; }
+    #panel { left:0; right:0; top:auto; bottom:0; width:auto; max-height:72vh; max-height:72dvh; border-radius:24px 24px 0 0; padding:20px 20px calc(24px + env(safe-area-inset-bottom)); overscroll-behavior:contain; }
+    hr.sep { margin:22px -20px 0; }
+    .big { font-size:26px; }
+    #ticker { height:calc(30px + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom); box-sizing:border-box; }
+    .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { bottom:calc(28px + env(safe-area-inset-bottom)); }
+  }
+  @media (max-width: 640px) and (display-mode: standalone) { #install { display:none !important; } }
 </style>
 </head>
 <body>
@@ -117,6 +154,8 @@
 </div>
 <div id="results"></div>
 <div id="panel"></div>
+<div id="install" class="toast" role="dialog" aria-label="Install the app"><span id="install-text">Add Trains to your home screen for a full-screen live map.</span><button id="install-go">Install</button><button class="quiet" id="install-no" aria-label="Not now">Not now</button></div>
+<div id="update" class="toast" role="status"><span>A new version is ready.</span><button id="update-go">Reload</button></div>
 <div id="ticker"><div class="track" id="track"></div></div>
 
 <script src="/vendor/pmtiles/dist/pmtiles.js"></script>
@@ -124,12 +163,19 @@
 import * as maplibregl from '/vendor/maplibre-gl/dist/maplibre-gl.mjs';
 const { Protocol } = window.pmtiles;
 import { distanceAt, smoothStep } from '/lib/motion.js';
+// Where the live server is. Empty means this same origin (the server serves this page in development);
+// on Vercel, /config.js is generated at build time from TRAINS_API_URL.
+const API = String(window.TRAINS_CONFIG?.apiBase ?? '').replace(/\/+$/, '');
+const LIVE_URL = (API || location.origin).replace(/^http/, 'ws') + '/live';
 
 maplibregl.addProtocol('pmtiles', new Protocol().tile);
 // light or dark: the reader's last choice, else the system setting
 let theme = localStorage.getItem('trains-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.body.classList.toggle('dark', theme === 'dark');
-const styleUrl = () => '/style.json' + (theme === 'dark' ? '?theme=dark' : '');
+// the browser/status bar follows the map theme the reader picked, not only the system setting
+const paintChrome = () => document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'dark' ? '#1b1c20' : '#f3f1ec'));
+paintChrome();
+const styleUrl = () => API + '/style.json' + (theme === 'dark' ? '?theme=dark' : '');
 // colours the app's own map layers use, per theme (the base map comes from the style)
 const THEMES = {
   light: { stationFill: '#ffffff', stationEdge: '#6f7278', stationLabel: '#4a4d52', labelHalo: '#f3f1ec', trainLabel: '#111111', trainHalo: '#ffffff', trail: '60,64,70', trailAlpha: 0.45, glow: 0.07, hollow: '#ffffff' },
@@ -189,7 +235,8 @@ const trailBack = (tr, s) => (s.status === 'enroute' && s.speedMps > 1 ? s.speed
 const lines = new Map(); const pending = new Set();
 const trains = new Map(); // id -> { s: summary, shown: d, fade }
 let clockOffset = 0; // serverTime - Date.now()
-const now = () => Date.now() + clockOffset;
+let frozenAt = null; // offline: hold trains where the last snapshot put them instead of running them on
+const now = () => frozenAt ?? Date.now() + clockOffset;
 let selected = null;
 
 // Track geometry is fetched a few at a time: hundreds of parallel requests make the browser
@@ -201,7 +248,7 @@ function ensureShape(key) {
 function pumpShapes() {
   while (shapesInFlight < SHAPE_PARALLEL && shapeQueue.length) {
     const key = shapeQueue.shift(); shapesInFlight++;
-    fetch('/api/shapes/' + encodeURIComponent(key)).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    fetch(API + '/api/shapes/' + encodeURIComponent(key)).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then((r) => { lines.set(key, line(decode(r.polyline))); pending.delete(key); })
       .catch(() => setTimeout(() => { pending.delete(key); ensureShape(key); }, 3000)) // retry later
       .finally(() => { shapesInFlight--; pumpShapes(); });
@@ -212,19 +259,48 @@ const lateClass = (s) => s.status === 'cancelled' ? 'bad' : s.source === 'schedu
 const STATUS_COLOR = { ontime: '#3fb950', late: '#f0a33a', bad: '#f85149', sched: '#7d8a99' };
 
 // ---- live connection ----
+// One snapshot over HTTP, then a WebSocket for changes. The socket is closed while the app sits in
+// the background (phones, installed PWA) and reopened with a fresh snapshot when it comes back, so an
+// idle tab costs neither battery nor server connections. Offline, the service worker answers the
+// snapshot from its cache and the pill says how old it is.
+let ws = null, retry = null, backoff = 3000;
+const modeEl = document.getElementById('mode');
+function setMode(text, stale) { modeEl.textContent = text; document.body.classList.toggle('stale', !!stale); }
 async function boot() {
-  const snap = await fetch('/api/snapshot').then((r) => r.json());
-  clockOffset = snap.serverTime - Date.now();
-  document.getElementById('mode').textContent = snap.demo ? '· demo replay' : '· live';
-  applyTrains(snap.trains); renderTicker(snap.events);
-  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/live');
-  ws.onmessage = (m) => { const msg = JSON.parse(m.data);
+  clearTimeout(retry); retry = null;
+  let snap;
+  try {
+    const r = await fetch(API + '/api/snapshot', { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    snap = await r.json();
+  } catch { setMode('· offline', true); scheduleBoot(); return; }
+  const cachedAt = Number(snap.__cachedAt) || 0; // set by the service worker when it answered offline
+  frozenAt = cachedAt ? snap.serverTime : null;
+  if (!cachedAt) clockOffset = snap.serverTime - Date.now();
+  if (cachedAt) { applyTrains(snap.trains); renderTicker(snap.events); setMode('· offline, as of ' + hm(cachedAt), true); scheduleBoot(); return; }
+  setMode(snap.demo ? '· demo replay' : '· live');
+  applyTrains(snap.trains); for (const id of trains.keys()) if (!snap.trains.some((t) => t.id === id)) trains.delete(id);
+  renderTicker(snap.events);
+  if (document.hidden) return; // went to the background while loading; visibilitychange reconnects
+  openSocket();
+}
+function openSocket() {
+  ws?.close();
+  const sock = ws = new WebSocket(LIVE_URL);
+  sock.onopen = () => { backoff = 3000; };
+  sock.onmessage = (m) => { const msg = JSON.parse(m.data);
     if (msg.serverTime) clockOffset = msg.serverTime - Date.now();
     if (msg.type === 'trains') { applyTrains(msg.trains); for (const id of msg.removed) trains.delete(id); if (selected?.type === 'train') refreshPanel(); }
     if (msg.type === 'event') pushEvent(msg.event);
   };
-  ws.onclose = () => setTimeout(boot, 3000);
+  sock.onclose = () => { if (ws !== sock) return; ws = null; if (!document.hidden) { setMode('· reconnecting', true); scheduleBoot(); } };
 }
+function scheduleBoot() { if (retry || document.hidden) return; retry = setTimeout(boot, backoff); backoff = Math.min(60000, backoff * 2); }
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { clearTimeout(retry); retry = null; const s = ws; ws = null; s?.close(); }
+  else if (routesData) { backoff = 3000; boot(); }
+});
+addEventListener('online', () => { if (!ws && !document.hidden) { backoff = 3000; boot(); } });
 
 // ---- map layers ----
 let routesData = null, stationsData = null;
@@ -253,9 +329,9 @@ function addAppLayers() {
   map.addLayer({ id: 'train-label', type: 'symbol', source: 'live-trains', minzoom: 10, layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, -1.6], 'text-allow-overlap': false }, paint: { 'text-color': T.trainLabel, 'text-halo-color': T.trainHalo, 'text-halo-width': 1.2 } });
 }
 map.on('load', async () => {
-  const ov = await fetch('/api/routes').then((r) => r.json());
+  const ov = await fetch(API + '/api/routes').then((r) => r.json());
   routesData = { type: 'FeatureCollection', features: ov.routes.map((r) => ({ type: 'Feature', properties: { color: r.color, operator: r.operator }, geometry: { type: 'LineString', coordinates: decode(r.polyline) } })) };
-  const stations = await fetch('/api/stations').then((r) => r.json());
+  const stations = await fetch(API + '/api/stations').then((r) => r.json());
   stationsData = { type: 'FeatureCollection', features: stations.stations.map((s) => ({ type: 'Feature', properties: { id: s.id, name: s.name, n: s.operators.length }, geometry: { type: 'Point', coordinates: [s.lon, s.lat] } })) };
   addAppLayers();
   map.on('styleimagemissing', (e) => { if (e.id.startsWith('train|')) addTrainIcon(e.id); });
@@ -268,7 +344,7 @@ map.on('load', async () => {
 });
 function setTheme(next) {
   theme = next; localStorage.setItem('trains-theme', theme);
-  document.body.classList.toggle('dark', theme === 'dark');
+  document.body.classList.toggle('dark', theme === 'dark'); paintChrome();
   document.getElementById('theme').setAttribute('aria-label', theme === 'dark' ? 'Switch to light map' : 'Switch to dark map');
   psFrame.src = psSrc(); psLoaded = false;
   if (!routesData) return; // still loading; the first style load picks the theme up
@@ -327,11 +403,11 @@ const panel = document.getElementById('panel');
 const hm = (ms) => ms == null ? '' : new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 const late = (sec) => sec == null ? '' : Math.abs(sec) < 90 ? 'On time' : sec > 0 ? `${Math.round(sec / 60)} min late` : `${Math.round(-sec / 60)} min early`;
 async function openTrain(id) {
-  const t = await fetch('/api/trains/' + encodeURIComponent(id)).then((r) => r.json());
+  const t = await fetch(API + '/api/trains/' + encodeURIComponent(id)).then((r) => r.json());
   const fresh = selected?.id !== id; selected = { type: 'train', id, data: t }; renderTrain(t); panel.style.display = 'block'; if (fresh) panel.scrollTop = 0; loadHistory(t);
   const l = lines.get(t.shape); if (l) map.easeTo({ center: [t.lon, t.lat], zoom: Math.max(map.getZoom(), 10), duration: 900 });
 }
-async function refreshPanel() { if (selected?.type === 'train') { const t = await fetch('/api/trains/' + encodeURIComponent(selected.id)).then((r) => r.ok ? r.json() : null); if (t) { selected.data = t; renderTrain(t); loadHistory(t); } } }
+async function refreshPanel() { if (selected?.type === 'train') { const t = await fetch(API + '/api/trains/' + encodeURIComponent(selected.id)).then((r) => r.ok ? r.json() : null); if (t) { selected.data = t; renderTrain(t); loadHistory(t); } } }
 // Amtrak's three-letter codes read well; other railroads' ids are numbers, so use a short name
 const endName = (t, s) => t.operator === 'amtrak' ? s.stationId : (s.name.length > 14 ? s.name.split(/[ -]/)[0] : s.name);
 function renderTrain(t) {
@@ -372,7 +448,7 @@ function trainHtml(t, cls, first, lastS, eta) {
     <h4>Stops</h4>
     <table>${t.stops.map((s) => `<tr class="${s.status === 'departed' ? 'past' : ''}"><td>${esc(s.name)}${s.track ? `<span class="trk" style="margin:0 0 0 8px">${esc(s.track)}</span>` : ''}${s.status === 'skipped' ? '<span class="tag">skipped</span>' : ''}</td>
       <td class="time">${s.schArr != null && s.estArr != null && Math.abs(s.estArr - s.schArr) > 90000 ? `<s style="color:var(--dim)">${hm(s.schArr)}</s> ` : ''}<span class="${s.status === 'departed' ? '' : cls}">${hm(s.estArr ?? s.schArr)}</span></td></tr>`).join('')}</table>
-    <div class="raw"><a href="/api/trains/${encodeURIComponent(t.id)}" target="_blank">Raw record</a></div>`;
+    <div class="raw"><a href="${API}/api/trains/${encodeURIComponent(t.id)}" target="_blank">Raw record</a></div>`;
 }
 // ---- equipment (live consist for LIRR / Metro-North, typical for Amtrak) ----
 const LOAD = { EMPTY: ['#3fb950', 'Plenty of seats'], MANY_SEATS: ['#3fb950', 'Many seats'], FEW_SEATS: ['#f0a33a', 'Few seats'], STANDING_ROOM_ONLY: ['#f85149', 'Standing room'], FULL: ['#f85149', 'Full'], NO_DATA: ['#c9c9c9', 'No sensor'] };
@@ -394,12 +470,12 @@ function equipmentHtml(t) {
   return `<div class="eq-name">${esc(e.name)}</div>
     <div class="eq-sub">${e.carsRunning ?? e.cars.length} cars${e.carsScheduled ? ` (${e.carsScheduled} scheduled)` : ''}${diff}${locos.length ? ` · ${locos.map((l) => `${esc(l.model)} ${l.number ?? ''}`).join(' + ')}` : ''}${counted ? ` · ${riders} aboard` : ''}</div>
     ${e.cars.length ? `<div class="cars">${cars}</div><div class="cars-legend"><span>front first</span><span><i style="background:#3fb950"></i>seats free</span><span><i style="background:#f0a33a"></i>few seats</span><span><i style="background:#f85149"></i>full</span><span><i style="background:#c9c9c9"></i>no sensor</span><span>· restroom</span></div>` : `<div class="eq-sub" style="margin-top:6px">The railroad didn't list the cars for this run.</div>`}
-    <div class="eq-sub" style="margin-top:6px">Live from the railroad · <a href="/api/trains/${encodeURIComponent(t.id)}/equipment/raw" target="_blank" style="color:var(--dim)">Raw record</a></div>`;
+    <div class="eq-sub" style="margin-top:6px">Live from the railroad · <a href="${API}/api/trains/${encodeURIComponent(t.id)}/equipment/raw" target="_blank" style="color:var(--dim)">Raw record</a></div>`;
 }
 
 // ---- history (our own recording + the public Amtrak archive) ----
 async function loadHistory(t, retry = 0) {
-  const h = await fetch(`/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}`).then((r) => r.json());
+  const h = await fetch(`${API}/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}`).then((r) => r.json());
   const el = document.getElementById('history'); if (!el || selected?.id !== t.id) return;
   const fmt = (m) => m == null ? '—' : Math.abs(m) <= 1 ? 'on time' : m > 0 ? `${m} min late` : `${-m} min early`;
   const days = [...h.days].reverse();
@@ -416,7 +492,7 @@ async function loadHistory(t, retry = 0) {
     <div id="daydetail">${h.note ? esc(h.note) + ' ' : ''}On time means within ${h.thresholdMin} min. Striped days aren't counted. Tap a day.</div>`;
   el.querySelectorAll('.day').forEach((b) => b.addEventListener('click', () => {
     const d = days[Number(b.dataset.i)];
-    const raw = `/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}/${d.date}/raw`;
+    const raw = `${API}/api/history/${t.operator}/${encodeURIComponent(t.trainNumber)}/${d.date}/raw`;
     document.getElementById('daydetail').innerHTML = `<b style="color:var(--text)">${d.date}</b> · ${d.status === 'no_record' ? 'did not run' : d.status === 'unknown' ? 'no record yet' : `${fmt(d.delayMin)}${d.measuredAt ? ` at ${esc(d.measuredAt)}` : ''}${d.status === 'running' ? ' (still running)' : ''}`}${d.flag && d.status !== 'no_record' ? ` · not counted: ${esc(d.flag)}` : ''}${d.consist ? `<br>${esc(d.consist)}` : ''}
       ${d.source ? `<br><a href="${raw}" target="_blank">Raw record</a>${d.sourceUrl ? ` · <a href="${esc(d.sourceUrl)}" target="_blank">Open in archive</a>` : ''}` : ''}`;
   }));
@@ -435,8 +511,8 @@ const OP_LABEL = { amtrak: 'Amtrak', lirr: 'LIRR', mnr: 'Metro-North', njt: 'NJ 
 const STATUS_TONE = { ok: 'var(--ontime)', minor: 'var(--late)', major: 'var(--bad)', unknown: 'var(--sched)' };
 async function openStation(id) {
   const [b, st] = await Promise.all([
-    fetch(`/api/stations/${encodeURIComponent(id)}/board`).then((r) => r.json()),
-    fetch(`/api/stations/${encodeURIComponent(id)}/stats`).then((r) => r.ok ? r.json() : null)]);
+    fetch(`${API}/api/stations/${encodeURIComponent(id)}/board`).then((r) => r.json()),
+    fetch(`${API}/api/stations/${encodeURIComponent(id)}/stats`).then((r) => r.ok ? r.json() : null)]);
   selected = { type: 'station', id };
   const rows = b.rows.filter((r) => r.kind === 'departure' && (r.estimated ?? r.scheduled) >= now() - 5 * 60000).slice(0, 40);
   const localTime = new Date(now()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' });
@@ -473,7 +549,7 @@ async function openStation(id) {
     <table>${rows.map((r) => { const cls = r.status === 'Cancelled' ? 'bad' : r.source === 'scheduled' ? 'sched' : (r.delaySec ?? 0) >= 300 ? 'late' : 'ontime';
       return `<tr style="cursor:${r.trainId ? 'pointer' : 'default'}" ${r.trainId ? `onclick="window.__openTrain('${esc(r.trainId)}')"` : ''}><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${esc(r.color)};margin-right:6px"></span><b>${esc(r.trainNumber)}</b> ${esc(r.destination)}<div style="color:var(--dim);font-size:12px">${esc(r.label)}</div></td>
       <td class="time">${r.track ? `<span class="trk">${esc(r.track)}</span>` : ''}<b class="${cls}">${hm(r.estimated ?? r.scheduled)}</b><div class="${cls}" style="font-size:12px">${esc(r.status)}</div></td></tr>`; }).join('')}</table>
-    <div class="raw"><a href="/api/stations/${encodeURIComponent(id)}/stats" target="_blank">Raw stats</a> · <a href="/api/stations/${encodeURIComponent(id)}/board" target="_blank">Raw board</a></div>`;
+    <div class="raw"><a href="${API}/api/stations/${encodeURIComponent(id)}/stats" target="_blank">Raw stats</a> · <a href="${API}/api/stations/${encodeURIComponent(id)}/board" target="_blank">Raw board</a></div>`;
   panel.style.display = 'block'; panel.scrollTop = 0;
   map.easeTo({ center: [b.hub.lon, b.hub.lat], zoom: Math.max(map.getZoom(), 12), duration: 900 });
 }
@@ -484,12 +560,41 @@ const input = document.getElementById('search'), results = document.getElementBy
 let timer;
 input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(async () => {
   const q = input.value.trim(); if (!q) { results.style.display = 'none'; return; }
-  const r = await fetch('/api/search?q=' + encodeURIComponent(q)).then((r) => r.json());
+  const r = await fetch(API + '/api/search?q=' + encodeURIComponent(q)).then((r) => r.json());
   results.innerHTML = [...r.trains.map((t) => `<div onclick="window.__openTrain('${esc(t.id)}')"><b>${esc(t.trainNumber)}</b> ${esc(t.routeName)} <span style="color:var(--dim)">to ${esc(t.destination)}</span></div>`),
     ...r.stations.map((s) => `<div onclick="window.__openStation('${esc(s.id)}')">${esc(s.name)} <span style="color:var(--dim)">${s.operators.join(' · ')}</span></div>`)].join('') || '<div style="color:var(--dim)">No matches</div>';
   results.style.display = 'block';
 }, 150); });
 results.addEventListener('click', () => { results.style.display = 'none'; });
+// ---- installable app ----
+// Service worker: offline shell, cached track and stations, last-known trains when the network drops.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    // check for a new version when the app comes back to the foreground (installed apps rarely reload)
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+  }).catch((e) => console.warn('service worker', e));
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) document.getElementById('update').classList.add('show'); });
+  document.getElementById('update-go').addEventListener('click', () => location.reload());
+}
+// Install prompt: Chrome/Edge/Android hand us an event; iOS Safari needs Share > Add to Home Screen.
+const installEl = document.getElementById('install');
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const dismissed = () => { try { return Number(localStorage.getItem('trains-install-dismissed')) > Date.now() - 30 * 864e5; } catch { return false; } };
+let installEvent = null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; if (!dismissed()) installEl.classList.add('show'); });
+addEventListener('appinstalled', () => installEl.classList.remove('show'));
+document.getElementById('install-go').addEventListener('click', async () => {
+  installEl.classList.remove('show');
+  if (installEvent) { installEvent.prompt(); await installEvent.userChoice.catch(() => {}); installEvent = null; }
+});
+document.getElementById('install-no').addEventListener('click', () => { installEl.classList.remove('show'); try { localStorage.setItem('trains-install-dismissed', String(Date.now())); } catch {} });
+const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (iOS && !standalone && !dismissed()) setTimeout(() => {
+  document.getElementById('install-text').innerHTML = 'Install: tap <svg width="16" height="16" viewBox="0 0 24 24" aria-label="Share"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 11v8.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> then <b>Add to Home Screen</b>.';
+  document.getElementById('install-go').style.display = 'none';
+  installEl.classList.add('show');
+}, 4000);
 </script>
 </body>
 </html>
