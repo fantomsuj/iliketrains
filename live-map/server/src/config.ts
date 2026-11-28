@@ -31,6 +31,13 @@ export const config = {
   styleFile: path.resolve(ROOT, '../tiles/style/trains-light.json'),
   darkStyleFile: path.resolve(ROOT, '../tiles/style/trains-night.json'),
   routesFile: env.ROUTES_FILE ?? path.join(ROOT, 'data/derived/routes.json'),
+  /** Browser origins allowed to call the API and open the live socket, comma-separated (e.g. the Vercel
+   * app's URL). Empty allows any origin, which is fine for development and for a read-only public API. */
+  allowedOrigins: (env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean),
+  /** Most live-socket clients at once; past it new sockets are refused and pages fall back to retrying. */
+  maxLiveClients: Number(env.MAX_LIVE_CLIENTS ?? 5000),
+  /** The installable web app (served here in development; on Vercel in production). */
+  webDir: path.resolve(ROOT, '../web'),
   /** Run history database and other state the server writes. */
   dataDir: env.TRAINS_DATA_DIR ?? path.join(ROOT, 'data/state'),
   gtfsDir: path.join(ROOT, 'data/gtfs'),
