@@ -25,6 +25,7 @@ struct MapControls: View {
                     Toggle("Freight traffic", isOn: $layers.trafficDensity)
                     Toggle("Intermodal ramps", isOn: $layers.intermodalTerminals)
                     Toggle("Yard dwell", isOn: $layers.yardDwell)
+                    Toggle("Ghost trains", isOn: $layers.ghostTrains)
                 }
             } label: {
                 Image(systemName: "square.3.layers.3d")

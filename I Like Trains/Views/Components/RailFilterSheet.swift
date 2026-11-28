@@ -65,6 +65,12 @@ struct RailFilterSheet: View {
                         symbol: "hourglass",
                         isOn: $model.layers.yardDwell
                     )
+                    LayerToggle(
+                        title: "Ghost trains",
+                        detail: "A typical day's trains, simulated and sped up",
+                        symbol: "sparkles",
+                        isOn: $model.layers.ghostTrains
+                    )
                 } header: {
                     Text("Freight data")
                 } footer: {
